@@ -78,6 +78,12 @@ export default function PaginaInicial() {
 
   useEffect(() => { carregarTudo().catch(() => definirMensagem('Não foi possível carregar os dados.')); }, []);
 
+  useEffect(() => {
+    if (!mensagem) return;
+    const temporizador = window.setTimeout(() => definirMensagem(''), 4000);
+    return () => window.clearTimeout(temporizador);
+  }, [mensagem]);
+
   async function enviarFormulario(rota: string, dados: object, metodo: 'POST' | 'PATCH' = 'POST') {
     const resposta = await fetch(rota, { method: metodo, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
     const resultado = await resposta.json();
@@ -234,7 +240,7 @@ export default function PaginaInicial() {
     <button className="botao-menu-mobile" onClick={() => definirMenuAberto(true)} aria-label="Abrir menu" aria-expanded={menuAberto}>☰</button>
     {menuAberto && <button className="fundo-menu-mobile" onClick={() => definirMenuAberto(false)} aria-label="Fechar menu" />}
     <aside className={`barra-lateral${menuAberto ? ' menu-aberto' : ''}`}><div className="marca"><span>⌂</span> Meus Aptos<button className="fechar-menu-mobile" onClick={() => definirMenuAberto(false)} aria-label="Fechar menu">×</button></div><nav>
-      {(['visao-geral', 'acomodacoes', 'hospedes', 'reservas', 'agenda', 'vistorias', 'financeiro', 'configuracoes'] as Secao[]).map((item) => <button key={item} className={secao === item ? 'ativo' : ''} onClick={() => { definirSecao(item); definirMenuAberto(false); }}><span>{item === 'visao-geral' ? '⌂' : item === 'acomodacoes' ? '▦' : item === 'hospedes' ? '♙' : item === 'reservas' ? '▤' : item === 'agenda' ? '▣' : item === 'vistorias' ? '✓' : item === 'financeiro' ? 'R$' : '⚙'} {nomes[item]}</span></button>)}
+      {(['visao-geral', 'acomodacoes', 'hospedes', 'reservas', 'agenda', 'vistorias', 'financeiro', 'configuracoes'] as Secao[]).map((item) => <button key={item} className={secao === item ? 'ativo' : ''} onClick={() => { definirSecao(item); definirMensagem(''); definirMenuAberto(false); }}><span>{item === 'visao-geral' ? '⌂' : item === 'acomodacoes' ? '▦' : item === 'hospedes' ? '♙' : item === 'reservas' ? '▤' : item === 'agenda' ? '▣' : item === 'vistorias' ? '✓' : item === 'financeiro' ? 'R$' : '⚙'} {nomes[item]}</span></button>)}
     </nav><div className="rodape-menu"><button onClick={sairDoSistema}>⇥ Sair</button><small>Dados persistentes • ambiente protegido</small></div></aside>
     <main><header><div><h1>{nomes[secao]}</h1><p>{descricaoDaSecao(secao)}</p></div>{secao === 'configuracoes' ? <button className="botao-principal" onClick={() => definirJanela('regra-preco')}>＋ Nova regra de preço</button> : secao !== 'agenda' && secao !== 'visao-geral' && <button className="botao-principal" onClick={() => abrirCadastro(secao === 'acomodacoes' ? 'acomodacao' : secao === 'hospedes' ? 'hospede' : secao === 'vistorias' ? 'vistoria' : secao === 'financeiro' ? 'financeiro' : 'reserva')}>＋ {secao === 'acomodacoes' ? 'Nova acomodação' : secao === 'hospedes' ? 'Novo hóspede' : secao === 'vistorias' ? 'Nova vistoria' : secao === 'financeiro' ? 'Novo lançamento' : 'Nova reserva'}</button>}</header>
       {mensagem && <div className="mensagem" role="status">{mensagem}<button onClick={() => definirMensagem('')}>×</button></div>}
