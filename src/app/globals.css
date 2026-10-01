@@ -356,6 +356,11 @@ header p {
     font-size: 1.2rem
 }
 
+.usuarios-configuracao { margin: 20px 0; }
+.titulo-configuracao { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.titulo-configuracao p { margin: 4px 0 0; color: var(--texto-suave); }
+@media (max-width: 640px) { .titulo-configuracao { align-items: stretch; flex-direction: column; } }
+
 .indicadores {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

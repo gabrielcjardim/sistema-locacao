@@ -3,10 +3,11 @@ import { z } from 'zod';
 import {
   autenticacaoObrigatoria,
   criarTokenDaSessao,
-  credenciaisSaoValidas,
   duracaoDaSessaoEmSegundos,
   nomeDoCookieDaSessao,
+  senhaConfereComHash,
 } from '@/infraestrutura/autenticacao/sessao';
+import { obterUsuarioParaAutenticacao } from '@/infraestrutura/repositorios/repositorio-de-usuarios';
 
 const dadosDeEntrada = z.object({
   usuario: z.string().trim().min(1),
@@ -16,8 +17,11 @@ const dadosDeEntrada = z.object({
 export async function POST(requisicao: Request) {
   try {
     const dados = dadosDeEntrada.parse(await requisicao.json());
-    if (autenticacaoObrigatoria() && !credenciaisSaoValidas(dados.usuario, dados.senha)) {
-      return NextResponse.json({ mensagem: 'Usuário ou senha inválidos.' }, { status: 401 });
+    if (autenticacaoObrigatoria()) {
+      const usuario = await obterUsuarioParaAutenticacao(dados.usuario);
+      if (!usuario?.ativo || !senhaConfereComHash(dados.senha, usuario.senhaHash)) {
+        return NextResponse.json({ mensagem: 'Usuário ou senha inválidos, ou acesso inativo.' }, { status: 401 });
+      }
     }
 
     const resposta = NextResponse.json({ autenticado: true });

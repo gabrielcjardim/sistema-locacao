@@ -4,7 +4,7 @@ import type { BancoLocal } from './tipos';
 
 const pastaDosDados = path.join(process.cwd(), 'dados-locais');
 const caminhoDoBanco = path.join(pastaDosDados, 'banco.json');
-const bancoVazio: BancoLocal = { acomodacoes: [], hospedes: [], reservas: [], regrasDePreco: [], configuracoes: { corPrincipal: '#FF5C00', coresRecentes: ['#FF5C00'] }, bloqueiosDeAgenda: [], vistorias: [], lancamentosFinanceiros: [] };
+const bancoVazio: BancoLocal = { acomodacoes: [], hospedes: [], reservas: [], regrasDePreco: [], configuracoes: { corPrincipal: '#FF5C00', coresRecentes: ['#FF5C00'] }, bloqueiosDeAgenda: [], vistorias: [], lancamentosFinanceiros: [], usuariosDoSistema: [] };
 
 let filaDeGravacao = Promise.resolve();
 
@@ -18,6 +18,7 @@ export async function lerBancoLocal(): Promise<BancoLocal> {
     banco.bloqueiosDeAgenda ??= [];
     banco.vistorias ??= [];
     banco.lancamentosFinanceiros ??= [];
+    banco.usuariosDoSistema ??= [];
     banco.reservas = banco.reservas.map((reserva) => ({ ...reserva, horaDeEntrada: reserva.horaDeEntrada ?? '14:00', horaDeSaida: reserva.horaDeSaida ?? '11:00', valorCalculado: reserva.valorCalculado ?? reserva.valorTotal, ajusteNoValor: reserva.ajusteNoValor ?? 0, motivoDoAjuste: reserva.motivoDoAjuste ?? '' }));
     return banco;
   } catch (erro) {

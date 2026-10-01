@@ -34,13 +34,11 @@ export function validarConfiguracaoDaAutenticacao() {
   obterSegredoDaSessao();
 }
 
-export function credenciaisSaoValidas(usuario: string, senha: string) {
-  validarConfiguracaoDaAutenticacao();
-  const usuarioEsperado = process.env.USUARIO_ADMIN!.trim().toLowerCase();
-  const [sal, hashEsperado] = process.env.SENHA_ADMIN_HASH!.trim().split(':');
+export function senhaConfereComHash(senha: string, senhaHash: string) {
+  const [sal, hashEsperado] = senhaHash.trim().split(':');
+  if (!sal || !hashEsperado) return false;
   const hashInformado = scryptSync(senha, sal, 64).toString('hex');
-  return compararComTempoConstante(usuario.trim().toLowerCase(), usuarioEsperado)
-    && compararComTempoConstante(hashInformado, hashEsperado);
+  return compararComTempoConstante(hashInformado, hashEsperado);
 }
 
 export function criarTokenDaSessao(usuario: string) {
@@ -65,4 +63,10 @@ export function tokenDaSessaoEValido(token: string | undefined) {
   } catch {
     return false;
   }
+}
+
+export function obterUsuarioDaSessao(token: string | undefined) {
+  if (!tokenDaSessaoEValido(token)) return null;
+  try { return (JSON.parse(Buffer.from(token!.split('.')[0], 'base64url').toString('utf8')) as ConteudoDaSessao).usuario; }
+  catch { return null; }
 }
