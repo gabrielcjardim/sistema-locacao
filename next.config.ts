@@ -4,6 +4,9 @@ const configuracao: NextConfig = {
   reactStrictMode: true,
   allowedDevOrigins: ['127.0.0.1'],
   poweredByHeader: false,
+  outputFileTracingIncludes: {
+    '/api/saude': ['./banco/001_estrutura_inicial.sql'],
+  },
   async headers() {
     return [
       {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   conexaoPostgres,
+  garantirEstruturaDoBanco,
   obterAmbienteDaAplicacao,
   obterTipoDePersistencia,
 } from '@/infraestrutura/banco/conexao';
@@ -15,11 +16,11 @@ export async function GET() {
   const persistencia = obterTipoDePersistencia();
 
   try {
-    validarConfiguracaoDaAutenticacao();
     const sql = conexaoPostgres();
 
     if (sql) {
       try {
+        await garantirEstruturaDoBanco(sql);
         await sql`select 1 as conectado`;
       } finally {
         await sql.end();
@@ -27,6 +28,8 @@ export async function GET() {
     } else {
       await lerBancoLocal();
     }
+
+    validarConfiguracaoDaAutenticacao();
 
     return NextResponse.json({
       situacao: 'saudavel',
