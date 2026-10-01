@@ -1,0 +1,9 @@
+{
+  "name": "Meus Aptos",
+  "short_name": "Meus Aptos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f5f1",
+  "theme_color": "#143d36",
+  "lang": "pt-BR"
+}

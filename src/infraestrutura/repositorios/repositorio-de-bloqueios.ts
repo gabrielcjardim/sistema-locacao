@@ -1,0 +1,18 @@
+import type { BloqueioDeAgenda, DadosDoBloqueio } from '@/dominio/bloqueio-de-agenda';
+import { gravarBancoLocal, lerBancoLocal } from '@/infraestrutura/banco/arquivo-local';
+import { conexaoPostgres } from '@/infraestrutura/banco/conexao';
+import { combinarDataEHora } from '@/dominio/reserva';
+export async function listarBloqueios(): Promise<BloqueioDeAgenda[]> {
+  const sql = conexaoPostgres(); if (!sql) return (await lerBancoLocal()).bloqueiosDeAgenda;
+  try { const linhas = await sql`select * from bloqueios_agenda order by data_inicial`; return linhas.map((linha) => ({ id: linha.id, acomodacaoId: linha.acomodacao_id, dataInicial: linha.data_inicial.toISOString(), dataFinal: linha.data_final.toISOString(), motivo: linha.motivo, criadoEm: linha.criado_em.toISOString() })); } finally { await sql.end(); }
+}
+export async function cadastrarBloqueio(dados: DadosDoBloqueio): Promise<BloqueioDeAgenda> {
+  const sql = conexaoPostgres();
+  if (!sql) { const banco = await lerBancoLocal(); const fimExclusivo = new Date(dados.dataFinal.getTime() + 86400000); if (!banco.acomodacoes.some((item) => item.id === dados.acomodacaoId)) throw new Error('ACOMODACAO_NAO_ENCONTRADA'); if (banco.reservas.some((item) => item.acomodacaoId === dados.acomodacaoId && item.situacao !== 'cancelada' && combinarDataEHora(item.dataDeEntrada, item.horaDeEntrada ?? '14:00') < fimExclusivo && combinarDataEHora(item.dataDeSaida, item.horaDeSaida ?? '11:00') > dados.dataInicial)) throw new Error('PERIODO_COM_RESERVA'); if (banco.bloqueiosDeAgenda.some((item) => item.acomodacaoId === dados.acomodacaoId && new Date(item.dataInicial) <= dados.dataFinal && new Date(item.dataFinal) >= dados.dataInicial)) throw new Error('PERIODO_JA_BLOQUEADO'); const item: BloqueioDeAgenda = { id: crypto.randomUUID(), acomodacaoId: dados.acomodacaoId, dataInicial: dados.dataInicial.toISOString(), dataFinal: dados.dataFinal.toISOString(), motivo: dados.motivo, criadoEm: new Date().toISOString() }; banco.bloqueiosDeAgenda.push(item); await gravarBancoLocal(banco); return item; }
+  try { const [reserva] = await sql`select id from reservas where acomodacao_id=${dados.acomodacaoId} and situacao<>'cancelada' and data_entrada<${dados.dataFinal} + interval '1 day' and data_saida>${dados.dataInicial} limit 1`; if (reserva) throw new Error('PERIODO_COM_RESERVA'); const [existente] = await sql`select id from bloqueios_agenda where acomodacao_id=${dados.acomodacaoId} and data_inicial<=${dados.dataFinal} and data_final>=${dados.dataInicial} limit 1`; if (existente) throw new Error('PERIODO_JA_BLOQUEADO'); const id = crypto.randomUUID(); const [linha] = await sql`insert into bloqueios_agenda (id,acomodacao_id,data_inicial,data_final,motivo) values (${id},${dados.acomodacaoId},${dados.dataInicial},${dados.dataFinal},${dados.motivo}) returning criado_em`; return { id, acomodacaoId: dados.acomodacaoId, dataInicial: dados.dataInicial.toISOString(), dataFinal: dados.dataFinal.toISOString(), motivo: dados.motivo, criadoEm: linha.criado_em.toISOString() }; } finally { await sql.end(); }
+}
+export async function removerBloqueio(id: string): Promise<void> {
+  const sql = conexaoPostgres();
+  if (!sql) { const banco = await lerBancoLocal(); const quantidade = banco.bloqueiosDeAgenda.length; banco.bloqueiosDeAgenda = banco.bloqueiosDeAgenda.filter((item) => item.id !== id); if (banco.bloqueiosDeAgenda.length === quantidade) throw new Error('BLOQUEIO_NAO_ENCONTRADO'); await gravarBancoLocal(banco); return; }
+  try { const resultado = await sql`delete from bloqueios_agenda where id=${id} returning id`; if (!resultado.length) throw new Error('BLOQUEIO_NAO_ENCONTRADO'); } finally { await sql.end(); }
+}

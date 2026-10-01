@@ -1,0 +1,26 @@
+{
+  "name": "meus-aptos",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3100",
+    "build": "next build",
+    "start": "next start -p 3100",
+    "producao:local": "npm run build && npm run start",
+    "gerar-senha": "node scripts/gerar-senha.mjs",
+    "verificar": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.3.6",
+    "postgres": "3.4.9",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.9.0"
+  }
+}
