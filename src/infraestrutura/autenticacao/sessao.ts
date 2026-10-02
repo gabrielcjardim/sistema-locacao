@@ -78,7 +78,8 @@ export function obterSessao(token: string | undefined): { usuario: string; perfi
   try {
     const conteudo = JSON.parse(Buffer.from(token!.split('.')[0], 'base64url').toString('utf8')) as Partial<ConteudoDaSessao>;
     const administradorDeContingencia = conteudo.usuario?.toLowerCase() === process.env.USUARIO_ADMIN?.trim().toLowerCase();
-    const perfil = administradorDeContingencia ? 'administrador_principal' : conteudo.perfil === 'administrador_principal' || conteudo.perfil === 'administrador' ? conteudo.perfil : 'operador';
+    const sessaoAnteriorAosNiveis = !conteudo.perfil;
+    const perfil = administradorDeContingencia || sessaoAnteriorAosNiveis ? 'administrador_principal' : conteudo.perfil === 'administrador_principal' || conteudo.perfil === 'administrador' ? conteudo.perfil : 'operador';
     return { usuario: conteudo.usuario!, perfil };
   } catch { return null; }
 }

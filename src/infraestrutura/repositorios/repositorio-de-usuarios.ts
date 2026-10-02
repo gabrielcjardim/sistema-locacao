@@ -17,6 +17,7 @@ export async function garantirAdministradorInicial() {
     const [{ quantidade }] = await sql`select count(*)::int as quantidade from usuarios_sistema`;
     if (quantidade === 0) await sql`insert into usuarios_sistema (nome,usuario,usuario_normalizado,senha_hash,perfil) values ('Gestor principal',${usuario},${normalizar(usuario)},${senhaHash},'administrador_principal') on conflict (usuario_normalizado) do nothing`;
     await sql`update usuarios_sistema set perfil='administrador_principal' where usuario_normalizado=${normalizar(usuario)}`;
+    await sql`update usuarios_sistema set perfil='administrador_principal' where id=(select id from usuarios_sistema order by criado_em limit 1) and not exists(select 1 from usuarios_sistema where perfil='administrador_principal')`;
   } finally { await sql.end(); }
 }
 
