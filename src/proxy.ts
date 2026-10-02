@@ -4,15 +4,34 @@ import {
   nomeDoCookieDaSessao,
   tokenDaSessaoEValido,
 } from '@/infraestrutura/autenticacao/sessao';
+import { licenciamentoObrigatorio, nomeDoCookieDaLicenca } from '@/infraestrutura/licenciamento/configuracao';
+import { validarTokenDaLicenca } from '@/infraestrutura/licenciamento/token';
+import { lerEstadoRecebido } from '@/infraestrutura/licenciamento/estado-da-licenca';
 
-const caminhosPublicos = ['/login', '/api/autenticacao/entrar', '/api/saude'];
+const caminhosPublicos = ['/login', '/api/autenticacao/entrar', '/api/saude', '/ativacao', '/api/licenca'];
 
-export function proxy(requisicao: NextRequest) {
+export async function proxy(requisicao: NextRequest) {
+  const caminho = requisicao.nextUrl.pathname;
+  const caminhoPublico = caminhosPublicos.some((publico) => caminho === publico || caminho.startsWith(`${publico}/`));
+
+  if (licenciamentoObrigatorio() && !caminhoPublico) {
+    try {
+      const token = requisicao.cookies.get(nomeDoCookieDaLicenca)?.value;
+      const licenca = token ? await validarTokenDaLicenca(token) : null;
+      if (!licenca || licenca.situacao === 'expirada') throw new Error('LICENCA_INATIVA');
+      const estadoRecebido = await lerEstadoRecebido();
+      if (estadoRecebido?.licencaId === licenca.conteudo.licencaId && estadoRecebido.situacao !== 'ativa') throw new Error(`LICENCA_${estadoRecebido.situacao.toUpperCase()}`);
+    } catch {
+      if (caminho.startsWith('/api/')) return NextResponse.json({ mensagem: 'Licença ausente, inválida ou expirada.' }, { status: 402 });
+      const ativacao = new URL('/ativacao', requisicao.url);
+      ativacao.searchParams.set('destino', caminho);
+      return NextResponse.redirect(ativacao);
+    }
+  }
+
   if (!autenticacaoObrigatoria()) return NextResponse.next();
 
-  const caminho = requisicao.nextUrl.pathname;
   const sessaoValida = tokenDaSessaoEValido(requisicao.cookies.get(nomeDoCookieDaSessao)?.value);
-  const caminhoPublico = caminhosPublicos.some((publico) => caminho === publico || caminho.startsWith(`${publico}/`));
 
   if (caminho === '/login' && sessaoValida) {
     return NextResponse.redirect(new URL('/', requisicao.url));

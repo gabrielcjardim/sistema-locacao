@@ -11,6 +11,7 @@ const mensagens: Record<string, string> = {
   CAPACIDADE_EXCEDIDA: 'A quantidade de hóspedes excede a capacidade da acomodação.',
   PERIODO_INDISPONIVEL: 'A acomodação já possui uma reserva nesse período.',
   PERIODO_BLOQUEADO: 'A acomodação está bloqueada nesse período.',
+  RESERVA_CANCELADA_IMUTAVEL: 'Uma reserva cancelada não pode ser reaberta. Crie uma nova reserva.',
 };
 
 export async function PATCH(requisicao: Request, contexto: RouteContext<'/api/reservas/[id]'>) {
@@ -29,4 +30,3 @@ export async function DELETE(_: Request, contexto: RouteContext<'/api/reservas/[
   try { const { id } = await contexto.params; await excluirReserva(id); return new NextResponse(null, { status: 204 }); }
   catch (erro) { const codigo = erro instanceof Error ? erro.message : ''; return NextResponse.json({ mensagem: codigo === 'RESERVA_COM_HISTORICO' ? 'A reserva possui vistoria ou lançamento financeiro vinculado. Remova esses registros primeiro ou cancele a reserva para preservar o histórico.' : 'A reserva não foi encontrada.' }, { status: codigo === 'RESERVA_COM_HISTORICO' ? 409 : 404 }); }
 }
-

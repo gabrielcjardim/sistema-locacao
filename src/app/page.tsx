@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, FormEvent, useEffect, useState } from 'react';
+import { CSSProperties, FormEvent, useEffect, useRef, useState } from 'react';
 import type { Acomodacao } from '@/dominio/acomodacao';
 import type { Hospede } from '@/dominio/hospede';
 import { combinarDataEHora, type Reserva } from '@/dominio/reserva';
@@ -9,6 +9,7 @@ import type { BloqueioDeAgenda } from '@/dominio/bloqueio-de-agenda';
 import type { Vistoria } from '@/dominio/vistoria';
 import type { LancamentoFinanceiro } from '@/dominio/lancamento-financeiro';
 import type { UsuarioDoSistema } from '@/dominio/usuario-do-sistema';
+import { camposDaMensagemWhatsapp, modeloPadraoDaMensagemWhatsapp, modeloPadraoDaMensagemWhatsappCancelamento, modeloPadraoDaMensagemWhatsappConclusao, type ConfiguracoesDoSistema } from '@/dominio/configuracoes-do-sistema';
 
 type Secao = 'visao-geral' | 'acomodacoes' | 'hospedes' | 'reservas' | 'agenda' | 'vistorias' | 'financeiro' | 'configuracoes';
 type Janela = 'acomodacao' | 'hospede' | 'reserva' | 'regra-preco' | 'detalhes-hospede' | 'acao-dia' | 'bloqueio' | 'vistoria' | 'financeiro' | 'usuario' | 'minha-conta' | null;
@@ -25,6 +26,13 @@ const novaVistoria = { reservaId: '', acomodacaoId: '', tipo: 'entrada', dataDaV
 const novoLancamento = { tipo: 'receita', descricao: '', categoria: 'Hospedagem', valor: 0, dataDeVencimento: hoje, dataDePagamento: '', situacao: 'pendente', reservaId: '', observacoes: '' };
 const novoUsuario: { nome: string; usuario: string; senha: string; ativo: boolean; perfil: UsuarioDoSistema['perfil'] } = { nome: '', usuario: '', senha: '', ativo: true, perfil: 'operador' };
 type SessaoAtual = { id?: string; nome: string; usuario: string; perfil: UsuarioDoSistema['perfil'] };
+type InformacoesDaLicenca = {
+  obrigatoria: boolean;
+  situacao: 'ativa' | 'tolerancia' | 'expirada' | 'ausente' | 'invalida' | 'desativada' | 'suspensa' | 'revogada' | 'cadastro_inativo' | 'central_indisponivel';
+  instalacaoId: string;
+  intervaloDeVerificacaoSegundos?: number;
+  licenca?: { licencaId: string; sistemaId: string; clienteId: string; clienteNome: string; emitidaEm: string; validaAte: string; toleranciaAte: string };
+};
 
 async function buscarLista<T>(rota: string): Promise<T[]> {
   const resposta = await fetch(rota, { cache: 'no-store' });
@@ -55,6 +63,9 @@ export default function PaginaInicial() {
   const [corPrincipal, definirCorPrincipal] = useState('#FF5C00');
   const [temaCarregado, definirTemaCarregado] = useState(false);
   const [coresRecentes, definirCoresRecentes] = useState<string[]>(['#FF5C00']);
+  const [modeloDaMensagemWhatsapp, definirModeloDaMensagemWhatsapp] = useState(modeloPadraoDaMensagemWhatsapp);
+  const [modeloDaMensagemWhatsappConclusao, definirModeloDaMensagemWhatsappConclusao] = useState(modeloPadraoDaMensagemWhatsappConclusao);
+  const [modeloDaMensagemWhatsappCancelamento, definirModeloDaMensagemWhatsappCancelamento] = useState(modeloPadraoDaMensagemWhatsappCancelamento);
   const [bloqueios, definirBloqueios] = useState<BloqueioDeAgenda[]>([]);
   const [diaSelecionado, definirDiaSelecionado] = useState<Date | null>(null);
   const [dadosBloqueio, definirDadosBloqueio] = useState(novoBloqueio);
@@ -70,14 +81,16 @@ export default function PaginaInicial() {
   const [perfilAtual, definirPerfilAtual] = useState<UsuarioDoSistema['perfil']>('operador');
   const [sessaoAtual, definirSessaoAtual] = useState<SessaoAtual>({ nome: 'Usuário', usuario: '', perfil: 'operador' });
   const [dadosDaPropriaConta, definirDadosDaPropriaConta] = useState({ nome: '', senha: '' });
+  const [informacoesDaLicenca, definirInformacoesDaLicenca] = useState<InformacoesDaLicenca | null>(null);
 
   async function carregarTudo() {
     definirCarregando(true);
     const sessao = await fetch('/api/autenticacao/sessao', { cache: 'no-store' }).then((resposta) => resposta.json() as Promise<SessaoAtual>);
     definirPerfilAtual(sessao.perfil);
     definirSessaoAtual(sessao);
-    const [listaDeAcomodacoes, listaDeHospedes, listaDeReservas, listaDeRegras, configuracoes, listaDeBloqueios, listaDeVistorias, listaDeLancamentos, listaDeUsuarios] = await Promise.all([
-      buscarLista<Acomodacao>('/api/acomodacoes'), buscarLista<Hospede>('/api/hospedes'), buscarLista<Reserva>('/api/reservas'), buscarLista<RegraDePreco>('/api/regras-de-preco'), fetch('/api/configuracoes', { cache: 'no-store' }).then((resposta) => resposta.json() as Promise<{ corPrincipal: string; coresRecentes: string[] }>), buscarLista<BloqueioDeAgenda>('/api/bloqueios'), buscarLista<Vistoria>('/api/vistorias'), buscarLista<LancamentoFinanceiro>('/api/financeiro'), sessao.perfil === 'operador' ? Promise.resolve([]) : buscarLista<UsuarioDoSistema>('/api/usuarios'),
+    const [listaDeAcomodacoes, listaDeHospedes, listaDeReservas, listaDeRegras, configuracoes, listaDeBloqueios, listaDeVistorias, listaDeLancamentos, listaDeUsuarios, licenca] = await Promise.all([
+      buscarLista<Acomodacao>('/api/acomodacoes'), buscarLista<Hospede>('/api/hospedes'), buscarLista<Reserva>('/api/reservas'), buscarLista<RegraDePreco>('/api/regras-de-preco'), fetch('/api/configuracoes', { cache: 'no-store' }).then((resposta) => resposta.json() as Promise<ConfiguracoesDoSistema>), buscarLista<BloqueioDeAgenda>('/api/bloqueios'), buscarLista<Vistoria>('/api/vistorias'), buscarLista<LancamentoFinanceiro>('/api/financeiro'), sessao.perfil === 'operador' ? Promise.resolve([]) : buscarLista<UsuarioDoSistema>('/api/usuarios'),
+      fetch('/api/licenca/status', { cache: 'no-store' }).then((resposta) => resposta.json() as Promise<InformacoesDaLicenca>),
     ]);
     definirAcomodacoes(listaDeAcomodacoes);
     definirHospedes(listaDeHospedes);
@@ -86,14 +99,35 @@ export default function PaginaInicial() {
     definirCorPrincipal(configuracoes.corPrincipal);
     definirTemaCarregado(true);
     definirCoresRecentes(configuracoes.coresRecentes.slice(0, 5));
+    definirModeloDaMensagemWhatsapp(configuracoes.modeloDaMensagemWhatsapp ?? modeloPadraoDaMensagemWhatsapp);
+    definirModeloDaMensagemWhatsappConclusao(configuracoes.modeloDaMensagemWhatsappConclusao ?? modeloPadraoDaMensagemWhatsappConclusao);
+    definirModeloDaMensagemWhatsappCancelamento(configuracoes.modeloDaMensagemWhatsappCancelamento ?? modeloPadraoDaMensagemWhatsappCancelamento);
     definirBloqueios(listaDeBloqueios);
     definirVistorias(listaDeVistorias);
     definirLancamentos(listaDeLancamentos);
     definirUsuarios(listaDeUsuarios);
+    definirInformacoesDaLicenca(licenca);
     definirCarregando(false);
   }
 
   useEffect(() => { carregarTudo().catch(() => definirMensagem('Não foi possível carregar os dados.')); }, []);
+
+  useEffect(() => {
+    if (!informacoesDaLicenca?.obrigatoria) return;
+    const verificar = async () => {
+      try {
+        const resposta = await fetch('/api/licenca/status', { cache: 'no-store' });
+        const atual = await resposta.json() as InformacoesDaLicenca;
+        definirInformacoesDaLicenca(atual);
+        if (!['ativa', 'tolerancia'].includes(atual.situacao)) window.location.replace('/ativacao?destino=%2F');
+      } catch { /* Uma falha isolada não encerra uma licença válida já instalada. */ }
+    };
+    const intervalo = window.setInterval(verificar, (informacoesDaLicenca.intervaloDeVerificacaoSegundos ?? 200) * 1000);
+    const aoVoltarParaAba = () => { if (document.visibilityState === 'visible') verificar(); };
+    document.addEventListener('visibilitychange', aoVoltarParaAba);
+    window.addEventListener('focus', verificar);
+    return () => { window.clearInterval(intervalo); document.removeEventListener('visibilitychange', aoVoltarParaAba); window.removeEventListener('focus', verificar); };
+  }, [informacoesDaLicenca?.obrigatoria, informacoesDaLicenca?.intervaloDeVerificacaoSegundos]);
 
   useEffect(() => {
     if (!mensagem) return;
@@ -153,6 +187,15 @@ export default function PaginaInicial() {
     try { const resposta = await fetch(`/api/reservas/${reservaEmEdicaoId}`, { method: 'DELETE' }); if (!resposta.ok) throw new Error((await resposta.json()).mensagem ?? 'Não foi possível excluir a reserva.'); definirReservas((atuais) => atuais.filter((item) => item.id !== reservaEmEdicaoId)); definirReservaEmEdicaoId(null); definirJanela(null); definirMensagem('Reserva excluída com sucesso.'); } catch (erro) { definirMensagem((erro as Error).message); }
   }
 
+  async function cancelarReservaSelecionada() {
+    if (!reservaEmEdicaoId || !window.confirm('Deseja cancelar esta reserva? Ela continuará no histórico e será contabilizada como cancelamento.')) return;
+    try {
+      const cancelada = await enviarFormulario(`/api/reservas/${reservaEmEdicaoId}`, { ...dadosReserva, situacao: 'cancelada' }, 'PATCH') as Reserva;
+      definirReservas((atuais) => atuais.map((item) => item.id === reservaEmEdicaoId ? cancelada : item));
+      definirDadosReserva(novaReserva); definirReservaEmEdicaoId(null); definirJanela(null); definirMensagem('Reserva cancelada e mantida no histórico.');
+    } catch (erro) { definirMensagem((erro as Error).message); }
+  }
+
   async function salvarRegraDePreco(evento: FormEvent) {
     evento.preventDefault();
     try {
@@ -182,8 +225,18 @@ export default function PaginaInicial() {
     const novasCoresRecentes = [corNormalizada, ...coresRecentes.filter((item) => item.toUpperCase() !== corNormalizada)].slice(0, 5);
     definirCorPrincipal(corNormalizada); definirCoresRecentes(novasCoresRecentes); definirTemaCarregado(true);
     try {
-      const salva = await enviarFormulario('/api/configuracoes', { corPrincipal: corNormalizada, coresRecentes: novasCoresRecentes }, 'PATCH') as { corPrincipal: string; coresRecentes: string[] };
+      const salva = await enviarFormulario('/api/configuracoes', { corPrincipal: corNormalizada, coresRecentes: novasCoresRecentes, modeloDaMensagemWhatsapp, modeloDaMensagemWhatsappConclusao, modeloDaMensagemWhatsappCancelamento }, 'PATCH') as ConfiguracoesDoSistema;
       definirCorPrincipal(salva.corPrincipal); definirCoresRecentes(salva.coresRecentes); definirMensagem('Cor do sistema atualizada.');
+    } catch (erro) { definirMensagem((erro as Error).message); }
+  }
+
+  async function salvarModelosDaMensagemWhatsapp(modeloDeConfirmacao: string, modeloDeCancelamento: string, modeloDeConclusao: string) {
+    try {
+      const salva = await enviarFormulario('/api/configuracoes', { corPrincipal, coresRecentes, modeloDaMensagemWhatsapp: modeloDeConfirmacao, modeloDaMensagemWhatsappCancelamento: modeloDeCancelamento, modeloDaMensagemWhatsappConclusao: modeloDeConclusao }, 'PATCH') as ConfiguracoesDoSistema;
+      definirModeloDaMensagemWhatsapp(salva.modeloDaMensagemWhatsapp);
+      definirModeloDaMensagemWhatsappConclusao(salva.modeloDaMensagemWhatsappConclusao);
+      definirModeloDaMensagemWhatsappCancelamento(salva.modeloDaMensagemWhatsappCancelamento);
+      definirMensagem('Mensagens do WhatsApp atualizadas.');
     } catch (erro) { definirMensagem((erro as Error).message); }
   }
 
@@ -316,6 +369,27 @@ export default function PaginaInicial() {
   function atualizarPeriodoDaReserva(alteracao: Partial<typeof novaReserva>) { let atualizada = atualizarReservaComValor(dadosReserva, alteracao, acomodacoes, regrasDePreco); const disponiveis = acomodacoesDisponiveisNoPeriodo(atualizada.dataDeEntrada, atualizada.horaDeEntrada, atualizada.dataDeSaida, atualizada.horaDeSaida); if (!disponiveis.some((item) => item.id === atualizada.acomodacaoId)) atualizada = atualizarReservaComValor(atualizada, { acomodacaoId: disponiveis[0]?.id ?? '' }, acomodacoes, regrasDePreco); return atualizada; }
   function atualizarTipoDaReserva(tipo: string) { const atualizada = atualizarTipoDeLocacao(dadosReserva, tipo, acomodacoes, regrasDePreco); const disponiveis = acomodacoesDisponiveisNoPeriodo(atualizada.dataDeEntrada, atualizada.horaDeEntrada, atualizada.dataDeSaida, atualizada.horaDeSaida); return disponiveis.some((item) => item.id === atualizada.acomodacaoId) ? atualizada : atualizarReservaComValor(atualizada, { acomodacaoId: disponiveis[0]?.id ?? '' }, acomodacoes, regrasDePreco); }
 
+  function enviarMensagemPeloWhatsapp(reserva: Reserva, modelo: string, acaoDaReserva?: 'confirmada' | 'alterada' | 'cancelada') {
+    const hospede = hospedes.find((item) => item.id === reserva.hospedeResponsavelId);
+    const acomodacao = acomodacoes.find((item) => item.id === reserva.acomodacaoId);
+    const telefoneInformado = hospede?.telefone.replace(/\D/g, '') ?? '';
+    if (telefoneInformado.length < 10) { definirMensagem('Cadastre um telefone válido para o hóspede antes de abrir o WhatsApp.'); return; }
+    const telefone = telefoneInformado.startsWith('55') ? telefoneInformado : `55${telefoneInformado}`;
+    const valor = reserva.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const valoresDosCampos: Record<string, string> = {
+      '{{nome_hospede}}': hospede?.nomeCompleto ?? 'Hóspede', '{{acomodacao}}': acomodacao?.identificacao ?? 'Não informada',
+      '{{telefone_hospede}}': hospede?.telefone ?? '', '{{email_hospede}}': hospede?.email ?? '', '{{cpf_hospede}}': hospede?.cpf ?? '', '{{codigo_reserva}}': reserva.id,
+      '{{data_entrada}}': formatarData(reserva.dataDeEntrada), '{{hora_entrada}}': reserva.horaDeEntrada ?? '14:00',
+      '{{data_saida}}': formatarData(reserva.dataDeSaida), '{{hora_saida}}': reserva.horaDeSaida ?? '11:00',
+      '{{quantidade_hospedes}}': String(reserva.quantidadeDeHospedes), '{{valor_total}}': valor,
+      '{{valor_calculado}}': reserva.valorCalculado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), '{{ajuste_valor}}': reserva.ajusteNoValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), '{{motivo_ajuste}}': reserva.motivoDoAjuste ?? '',
+      '{{tipo_locacao}}': reserva.tipoDeLocacao, '{{situacao_reserva}}': reserva.situacao.replace('_', ' '), '{{acao_reserva}}': acaoDaReserva ?? reserva.ultimaAcao.replace('_', ' '), '{{alteracoes_reserva}}': reserva.resumoDaUltimaAlteracao ? `Alterações realizadas:\n${reserva.resumoDaUltimaAlteracao}` : '',
+    };
+    const mensagemComCampos = Object.entries(valoresDosCampos).reduce((texto, [campo, conteudo]) => texto.replaceAll(campo, conteudo), modelo);
+    const mensagem = mensagemComCampos.replace(/Sua reserva foi (confirmada|alterada|cancelada)/i, `Sua reserva foi ${valoresDosCampos['{{acao_reserva}}']}`);
+    window.open(`https://wa.me/${telefone}?text=${encodeURIComponent(mensagem)}`, '_blank', 'noopener,noreferrer');
+  }
+
   async function sairDoSistema() {
     await fetch('/api/autenticacao/sair', { method: 'POST' });
     window.location.assign('/login');
@@ -345,17 +419,17 @@ export default function PaginaInicial() {
     {menuAberto && <button className="fundo-menu-mobile" onClick={() => definirMenuAberto(false)} aria-label="Fechar menu" />}
     <aside className={`barra-lateral${menuAberto ? ' menu-aberto' : ''}`}><div className="marca"><span>⌂</span> Meus Aptos<button className="fechar-menu-mobile" onClick={() => definirMenuAberto(false)} aria-label="Fechar menu">×</button></div><nav>
       {(['visao-geral', 'acomodacoes', 'hospedes', 'reservas', 'agenda', 'vistorias', 'financeiro', 'configuracoes'] as Secao[]).map((item) => <button key={item} className={secao === item ? 'ativo' : ''} onClick={() => { definirSecao(item); definirMensagem(''); definirMenuAberto(false); }}><span>{item === 'visao-geral' ? '⌂' : item === 'acomodacoes' ? '▦' : item === 'hospedes' ? '♙' : item === 'reservas' ? '▤' : item === 'agenda' ? '▣' : item === 'vistorias' ? '✓' : item === 'financeiro' ? 'R$' : '⚙'} {nomes[item]}</span></button>)}
-    </nav><div className="rodape-menu"><button className="usuario-logado" onClick={abrirMinhaConta}><span>Minha conta</span><b>{sessaoAtual.nome}</b></button><button onClick={sairDoSistema}>⇥ Sair</button></div></aside>
+    </nav><div className="rodape-menu"><button className="usuario-logado" onClick={abrirMinhaConta}><span>Minha conta</span><b>{sessaoAtual.nome}</b>{informacoesDaLicenca?.licenca && <small className={`alerta-licenca ${informacoesDaLicenca.situacao}`}>● {textoResumidoDaLicenca(informacoesDaLicenca)}</small>}</button><button onClick={sairDoSistema}>⇥ Sair</button></div></aside>
     <main><header><div><h1>{nomes[secao]}</h1><p>{descricaoDaSecao(secao)}</p></div>{secao !== 'configuracoes' && secao !== 'agenda' && secao !== 'visao-geral' && <button className="botao-principal" onClick={() => abrirCadastro(secao === 'acomodacoes' ? 'acomodacao' : secao === 'hospedes' ? 'hospede' : secao === 'vistorias' ? 'vistoria' : secao === 'financeiro' ? 'financeiro' : 'reserva')}>＋ {secao === 'acomodacoes' ? 'Nova acomodação' : secao === 'hospedes' ? 'Novo hóspede' : secao === 'vistorias' ? 'Nova vistoria' : secao === 'financeiro' ? 'Novo lançamento' : 'Nova reserva'}</button>}</header>
       {mensagem && <div className="mensagem" role="status">{mensagem}<button onClick={() => definirMensagem('')}>×</button></div>}
       {secao === 'visao-geral' && <VisaoGeral acomodacoes={acomodacoes} hospedes={hospedes} reservas={reservas} abrirReserva={() => abrirCadastro('reserva')} abrirAgenda={() => definirSecao('agenda')} editarReserva={editarReserva} />}
       {secao === 'acomodacoes' && <><section className="indicadores"><article><span>Total cadastrado</span><strong>{acomodacoes.length}</strong></article><article><span>Disponíveis agora</span><strong>{disponiveis}</strong></article><article><span>Indisponíveis</span><strong>{acomodacoes.length - disponiveis}</strong></article></section><section className="grade">{carregando ? <Estado texto="Carregando acomodações..." /> : acomodacoes.length === 0 ? <Estado texto="Nenhuma acomodação cadastrada" /> : acomodacoes.map((item) => <button className="cartao cartao-clicavel" key={item.id} onClick={() => editarAcomodacao(item)}><div className="cartao-topo"><span className="numero">{item.identificacao}</span><span className={`situacao ${item.situacao}`}>{item.situacao}</span></div><h2>{item.tipo} {item.identificacao}</h2><p>{item.andarOuLocalizacao || 'Localização não informada'} • {item.numeroDeQuartos} {item.numeroDeQuartos === 1 ? 'quarto' : 'quartos'} • até {item.capacidadeDePessoas} pessoas</p><footer><span>A partir de</span><strong>{item.valorBaseDaDiaria.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/dia</strong><em>Editar →</em></footer></button>)}</section></>}
       {secao === 'hospedes' && <TabelaVaziaOuConteudo vazia={!hospedes.length} textoVazio="Nenhum hóspede cadastrado"><table><thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th></th></tr></thead><tbody>{hospedes.map((item) => <tr key={item.id}><td><button className="link-tabela" onClick={() => abrirHospede(item.id)}>{item.nomeCompleto}</button></td><td>{item.cpf || 'Não informado'}</td><td>{item.telefone}</td><td>{item.email || 'Não informado'}</td><td><button className="botao-tabela" onClick={() => editarHospede(item)}>Editar</button></td></tr>)}</tbody></table></TabelaVaziaOuConteudo>}
-      {secao === 'reservas' && <TabelaVaziaOuConteudo vazia={!reservas.length} textoVazio="Nenhuma reserva cadastrada"><table><thead><tr><th>Hóspede</th><th>Acomodação</th><th>Entrada</th><th>Saída</th><th>Pessoas</th><th>Valor</th><th>Situação</th><th></th></tr></thead><tbody>{reservas.map((item) => <tr key={item.id}><td><button className="link-tabela" onClick={() => abrirHospede(item.hospedeResponsavelId)}>{nomeDoHospede(item.hospedeResponsavelId)}</button></td><td><button className="link-tabela" onClick={() => { const acomodacao = acomodacoes.find((atual) => atual.id === item.acomodacaoId); if (acomodacao) editarAcomodacao(acomodacao); }}>{nomeDaAcomodacao(item.acomodacaoId)}</button></td><td>{formatarData(item.dataDeEntrada)} às {item.horaDeEntrada ?? '14:00'}</td><td>{formatarData(item.dataDeSaida)} às {item.horaDeSaida ?? '11:00'}</td><td>{item.quantidadeDeHospedes}</td><td>{item.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td><span className={`situacao ${item.situacao}`}>{item.situacao.replace('_', ' ')}</span></td><td><button className="botao-tabela" onClick={() => editarReserva(item)}>Editar</button></td></tr>)}</tbody></table></TabelaVaziaOuConteudo>}
+      {secao === 'reservas' && <><section className="indicadores indicadores-reservas"><article><span>Total de reservas</span><strong>{reservas.length}</strong></article><article><span>Cancelamentos</span><strong>{reservas.filter((item) => item.situacao === 'cancelada').length}</strong></article></section><TabelaVaziaOuConteudo vazia={!reservas.length} textoVazio="Nenhuma reserva cadastrada"><table><thead><tr><th>Hóspede</th><th>Acomodação</th><th>Entrada</th><th>Saída</th><th>Pessoas</th><th>Valor</th><th>Situação</th><th></th></tr></thead><tbody>{reservas.map((item) => <tr key={item.id}><td><button className="link-tabela" onClick={() => abrirHospede(item.hospedeResponsavelId)}>{nomeDoHospede(item.hospedeResponsavelId)}</button></td><td><button className="link-tabela" onClick={() => { const acomodacao = acomodacoes.find((atual) => atual.id === item.acomodacaoId); if (acomodacao) editarAcomodacao(acomodacao); }}>{nomeDaAcomodacao(item.acomodacaoId)}</button></td><td>{formatarData(item.dataDeEntrada)} às {item.horaDeEntrada ?? '14:00'}</td><td>{formatarData(item.dataDeSaida)} às {item.horaDeSaida ?? '11:00'}</td><td>{item.quantidadeDeHospedes}</td><td>{item.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td><td><span className={`situacao ${item.situacao}`}>{item.situacao.replace('_', ' ')}</span></td><td><div className="acoes-tabela"><button className="botao-whatsapp" onClick={() => enviarMensagemPeloWhatsapp(item, item.situacao === 'cancelada' ? modeloDaMensagemWhatsappCancelamento : item.situacao === 'concluida' ? modeloDaMensagemWhatsappConclusao : modeloDaMensagemWhatsapp)}>{item.situacao === 'concluida' ? 'Finalizar no WhatsApp' : 'WhatsApp'}</button><button className="botao-tabela" onClick={() => editarReserva(item)}>Editar</button></div></td></tr>)}</tbody></table></TabelaVaziaOuConteudo></>}
       {secao === 'agenda' && <AgendaDeDisponibilidade acomodacoes={acomodacoes} hospedes={hospedes} reservas={reservas} bloqueios={bloqueios} regrasDePreco={regrasDePreco} inicio={inicioDaAgenda} mudarInicio={definirInicioDaAgenda} editarReserva={editarReserva} escolherAcaoDoDia={escolherAcaoDoDia} />}
       {secao === 'vistorias' && <PainelDeVistorias vistorias={vistorias} reservas={reservas} acomodacoes={acomodacoes} editar={editarVistoria} />}
       {secao === 'financeiro' && <PainelFinanceiro lancamentos={lancamentos} reservas={reservas} editar={editarLancamento} />}
-      {secao === 'configuracoes' && <ConfiguracaoDePrecos regras={regrasDePreco} acomodacoes={acomodacoes} corPrincipal={corPrincipal} coresRecentes={coresRecentes} alterarCorPrincipal={alterarCorPrincipal} usuarios={usuarios} abrirUsuario={abrirUsuario} perfilAtual={perfilAtual} novaRegra={() => abrirCadastro('regra-preco')} editarRegra={editarRegraDePreco} />}
+      {secao === 'configuracoes' && <ConfiguracaoDePrecos regras={regrasDePreco} acomodacoes={acomodacoes} corPrincipal={corPrincipal} coresRecentes={coresRecentes} alterarCorPrincipal={alterarCorPrincipal} usuarios={usuarios} abrirUsuario={abrirUsuario} perfilAtual={perfilAtual} novaRegra={() => abrirCadastro('regra-preco')} editarRegra={editarRegraDePreco} informacoesDaLicenca={informacoesDaLicenca} modeloDaMensagemWhatsapp={modeloDaMensagemWhatsapp} modeloDaMensagemWhatsappCancelamento={modeloDaMensagemWhatsappCancelamento} modeloDaMensagemWhatsappConclusao={modeloDaMensagemWhatsappConclusao} salvarModelosDaMensagemWhatsapp={salvarModelosDaMensagemWhatsapp} />}
     </main>
     {janela && <div className="fundo-modal" onMouseDown={(evento) => evento.target === evento.currentTarget && definirJanela(null)}><section className="modal" role="dialog" aria-modal="true"><header><h2>{janela === 'acomodacao' ? acomodacaoEmEdicaoId ? 'Editar acomodação' : 'Nova acomodação' : janela === 'hospede' ? hospedeEmEdicaoId ? 'Editar hóspede' : 'Novo hóspede' : janela === 'regra-preco' ? regraDePrecoEmEdicaoId ? 'Editar regra de preço' : 'Nova regra de preço' : janela === 'detalhes-hospede' ? 'Ficha do hóspede' : janela === 'acao-dia' ? diaSelecionado ? formatarData(chaveDaData(diaSelecionado)) : 'Agenda' : janela === 'bloqueio' ? 'Bloquear período' : janela === 'vistoria' ? vistoriaEmEdicaoId ? 'Editar vistoria' : 'Nova vistoria' : janela === 'financeiro' ? lancamentoEmEdicaoId ? 'Editar lançamento' : 'Novo lançamento' : janela === 'usuario' ? usuarioEmEdicaoId ? 'Editar usuário' : 'Novo usuário' : janela === 'minha-conta' ? 'Minha conta' : reservaEmEdicaoId ? 'Editar reserva' : 'Nova reserva'}</h2><button className="fechar" onClick={() => definirJanela(null)} aria-label="Fechar">×</button></header>
       {janela === 'acomodacao' && <form onSubmit={salvarAcomodacao}><Campo titulo="Identificação"><input required value={dadosAcomodacao.identificacao} onChange={(e) => definirDadosAcomodacao({ ...dadosAcomodacao, identificacao: e.target.value })} /></Campo><Campo titulo="Tipo"><select value={dadosAcomodacao.tipo} onChange={(e) => definirDadosAcomodacao({ ...dadosAcomodacao, tipo: e.target.value })}><option>Apartamento</option><option>Quarto</option><option>Casa</option><option>Chalé</option></select></Campo><Campo titulo="Andar ou localização"><input value={dadosAcomodacao.andarOuLocalizacao} onChange={(e) => definirDadosAcomodacao({ ...dadosAcomodacao, andarOuLocalizacao: e.target.value })} /></Campo><Campo titulo="Capacidade"><input type="number" min="1" required value={dadosAcomodacao.capacidadeDePessoas} onChange={(e) => definirDadosAcomodacao({ ...dadosAcomodacao, capacidadeDePessoas: Number(e.target.value) })} /></Campo><Campo titulo="Número de quartos"><input type="number" min="1" required value={dadosAcomodacao.numeroDeQuartos} onChange={(e) => definirDadosAcomodacao({ ...dadosAcomodacao, numeroDeQuartos: Number(e.target.value) })} /></Campo><Campo titulo="Valor-base da diária"><input type="number" min="0" step="0.01" required value={dadosAcomodacao.valorBaseDaDiaria} onChange={(e) => definirDadosAcomodacao({ ...dadosAcomodacao, valorBaseDaDiaria: Number(e.target.value) })} /></Campo><Campo titulo="Situação"><select value={dadosAcomodacao.situacao} onChange={(e) => definirDadosAcomodacao({ ...dadosAcomodacao, situacao: e.target.value })}><option value="disponivel">Disponível</option><option value="ocupada">Ocupada</option><option value="limpeza">Limpeza</option><option value="manutencao">Manutenção</option><option value="inativa">Inativa</option></select></Campo>{acomodacaoEmEdicaoId && <button type="button" className="botao-perigo" onClick={removerAcomodacaoSelecionada}>Excluir acomodação</button>}<Acoes fechar={() => { definirAcomodacaoEmEdicaoId(null); definirJanela(null); }} texto={acomodacaoEmEdicaoId ? 'Salvar alterações' : 'Salvar acomodação'} /></form>}
@@ -378,7 +452,8 @@ export default function PaginaInicial() {
         <Campo titulo="Motivo do ajuste"><input required={dadosReserva.ajusteNoValor !== 0} maxLength={300} value={dadosReserva.motivoDoAjuste} onChange={(e) => definirDadosReserva({ ...dadosReserva, motivoDoAjuste: e.target.value })} placeholder="Ex.: desconto para cliente recorrente ou taxa por dano" /></Campo>
         <div className={`resumo-negociacao ${dadosReserva.ajusteNoValor < 0 ? 'desconto' : dadosReserva.ajusteNoValor > 0 ? 'acrescimo' : ''}`}><span>Calculado <b>{formatarDinheiro(dadosReserva.valorCalculado)}</b></span><span>{dadosReserva.ajusteNoValor < 0 ? 'Desconto' : dadosReserva.ajusteNoValor > 0 ? 'Acréscimo' : 'Ajuste'} <b>{formatarDinheiro(Math.abs(dadosReserva.ajusteNoValor))}</b></span><strong>Total final {formatarDinheiro(dadosReserva.valorTotal)}</strong></div>
         <p className="explicacao-preco">O valor calculado segue as diárias do período. Você pode aplicar um ajuste positivo ou negativo, ou editar diretamente o valor final negociado.</p>
-        {reservaEmEdicaoId && <button type="button" className="botao-perigo" onClick={removerReservaSelecionada}>Excluir reserva</button>}
+        {reservaEmEdicaoId && dadosReserva.situacao !== 'cancelada' && <button type="button" className="botao-perigo" onClick={cancelarReservaSelecionada}>Cancelar reserva</button>}
+        {reservaEmEdicaoId && <button type="button" className="botao-perigo discreto" onClick={removerReservaSelecionada}>Excluir definitivamente</button>}
         <Acoes fechar={() => { definirReservaEmEdicaoId(null); definirJanela(null); }} texto={reservaEmEdicaoId ? 'Salvar alterações' : 'Confirmar reserva'} />
       </form>}
       {janela === 'regra-preco' && <form onSubmit={salvarRegraDePreco}><Campo titulo="Nome do período"><input required placeholder="Ex.: Alta temporada de verão" value={dadosRegraDePreco.nome} onChange={(e) => definirDadosRegraDePreco({ ...dadosRegraDePreco, nome: e.target.value })} /></Campo><Campo titulo="Aplicação"><select value={dadosRegraDePreco.acomodacaoId} onChange={(e) => definirDadosRegraDePreco({ ...dadosRegraDePreco, acomodacaoId: e.target.value })}><option value="">Todas as acomodações (regra geral)</option>{acomodacoes.map((item) => <option key={item.id} value={item.id}>Somente {item.identificacao}</option>)}</select></Campo><Campo titulo="Data inicial"><input type="date" required value={dadosRegraDePreco.dataInicial} onChange={(e) => definirDadosRegraDePreco({ ...dadosRegraDePreco, dataInicial: e.target.value })} /></Campo><Campo titulo="Data final (inclusive)"><input type="date" required value={dadosRegraDePreco.dataFinal} onChange={(e) => definirDadosRegraDePreco({ ...dadosRegraDePreco, dataFinal: e.target.value })} /></Campo><Campo titulo="Valor da diária no período"><input type="number" min="0.01" step="0.01" required value={dadosRegraDePreco.valorDaDiaria} onChange={(e) => definirDadosRegraDePreco({ ...dadosRegraDePreco, valorDaDiaria: Number(e.target.value) })} /></Campo><Campo titulo="Situação"><select value={dadosRegraDePreco.ativa ? 'ativa' : 'inativa'} onChange={(e) => definirDadosRegraDePreco({ ...dadosRegraDePreco, ativa: e.target.value === 'ativa' })}><option value="ativa">Ativa</option><option value="inativa">Inativa</option></select></Campo>{regraDePrecoEmEdicaoId && <button type="button" className="botao-perigo" onClick={removerRegraDePrecoSelecionada}>Excluir regra de preço</button>}<Acoes fechar={() => { definirRegraDePrecoEmEdicaoId(null); definirJanela(null); }} texto={regraDePrecoEmEdicaoId ? 'Salvar alterações' : 'Salvar regra'} /></form>}
@@ -392,10 +467,11 @@ export default function PaginaInicial() {
 }
 
 function Campo({ titulo, children }: { titulo: string; children: React.ReactNode }) { return <label>{titulo}{children}</label>; }
-function Acoes({ fechar, texto }: { fechar: () => void; texto: string }) { return <div className="acoes"><button type="button" className="botao-secundario" onClick={fechar}>Cancelar</button><button className="botao-principal">{texto}</button></div>; }
+function Acoes({ fechar, texto }: { fechar: () => void; texto: string }) { return <div className="acoes"><button type="button" className="botao-secundario" onClick={fechar}>Voltar</button><button className="botao-principal">{texto}</button></div>; }
 function Estado({ texto }: { texto: string }) { return <div className="estado"><b>{texto}</b></div>; }
 function TabelaVaziaOuConteudo({ vazia, textoVazio, children }: { vazia: boolean; textoVazio: string; children: React.ReactNode }) { return vazia ? <Estado texto={textoVazio} /> : <section className="tabela">{children}</section>; }
 function formatarData(data: string) { return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(data)); }
+function formatarDataHoraDaLicenca(data: string) { return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(data)); }
 function formatarDinheiro(valor: number) { return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
 function minutosDoHorario(horario: string) { const [hora, minuto] = horario.split(':').map(Number); return hora * 60 + minuto; }
 
@@ -478,12 +554,49 @@ function AgendaDeDisponibilidade({ acomodacoes, hospedes, reservas, bloqueios, r
   </section>;
 }
 
-function ConfiguracaoDePrecos({ regras, acomodacoes, corPrincipal, coresRecentes, alterarCorPrincipal, usuarios, abrirUsuario, perfilAtual, novaRegra, editarRegra }: { regras: RegraDePreco[]; acomodacoes: Acomodacao[]; corPrincipal: string; coresRecentes: string[]; alterarCorPrincipal: (cor: string) => Promise<void>; usuarios: UsuarioDoSistema[]; abrirUsuario: (usuario?: UsuarioDoSistema) => void; perfilAtual: UsuarioDoSistema['perfil']; novaRegra: () => void; editarRegra: (regra: RegraDePreco) => void }) {
+function diasAte(valor: string) { return Math.max(0, Math.ceil((new Date(valor).getTime() - Date.now()) / 86400000)); }
+function textoResumidoDaLicenca(informacoes: InformacoesDaLicenca) {
+  if (informacoes.situacao === 'tolerancia') return `Licença em tolerância: ${diasAte(informacoes.licenca!.toleranciaAte)} dia(s)`;
+  if (informacoes.situacao === 'ativa') return `Licença válida: ${diasAte(informacoes.licenca!.validaAte)} dia(s)`;
+  return 'Licença requer atenção';
+}
+
+function ConfiguracaoDePrecos({ regras, acomodacoes, corPrincipal, coresRecentes, alterarCorPrincipal, usuarios, abrirUsuario, perfilAtual, novaRegra, editarRegra, informacoesDaLicenca, modeloDaMensagemWhatsapp, modeloDaMensagemWhatsappCancelamento, modeloDaMensagemWhatsappConclusao, salvarModelosDaMensagemWhatsapp }: { regras: RegraDePreco[]; acomodacoes: Acomodacao[]; corPrincipal: string; coresRecentes: string[]; alterarCorPrincipal: (cor: string) => Promise<void>; usuarios: UsuarioDoSistema[]; abrirUsuario: (usuario?: UsuarioDoSistema) => void; perfilAtual: UsuarioDoSistema['perfil']; novaRegra: () => void; editarRegra: (regra: RegraDePreco) => void; informacoesDaLicenca: InformacoesDaLicenca | null; modeloDaMensagemWhatsapp: string; modeloDaMensagemWhatsappCancelamento: string; modeloDaMensagemWhatsappConclusao: string; salvarModelosDaMensagemWhatsapp: (confirmacao: string, cancelamento: string, conclusao: string) => Promise<void> }) {
   const [corDigitada, definirCorDigitada] = useState(corPrincipal);
+  const [modeloDigitado, definirModeloDigitado] = useState(modeloDaMensagemWhatsapp);
+  const [modeloDeConclusaoDigitado, definirModeloDeConclusaoDigitado] = useState(modeloDaMensagemWhatsappConclusao);
+  const [modeloDeCancelamentoDigitado, definirModeloDeCancelamentoDigitado] = useState(modeloDaMensagemWhatsappCancelamento);
+  const campoDoModeloDeMovimentacao = useRef<HTMLTextAreaElement>(null);
+  const campoDoModeloDeConclusao = useRef<HTMLTextAreaElement>(null);
+  const campoDoModeloDeCancelamento = useRef<HTMLTextAreaElement>(null);
+  const [modeloEmFoco, definirModeloEmFoco] = useState<'movimentacao' | 'cancelamento' | 'conclusao'>('movimentacao');
   useEffect(() => definirCorDigitada(corPrincipal), [corPrincipal]);
+  useEffect(() => definirModeloDigitado(modeloDaMensagemWhatsapp), [modeloDaMensagemWhatsapp]);
+  useEffect(() => definirModeloDeConclusaoDigitado(modeloDaMensagemWhatsappConclusao), [modeloDaMensagemWhatsappConclusao]);
+  useEffect(() => definirModeloDeCancelamentoDigitado(modeloDaMensagemWhatsappCancelamento), [modeloDaMensagemWhatsappCancelamento]);
+  function inserirCampoNoCursor(campo: string) {
+    const referencia = modeloEmFoco === 'movimentacao' ? campoDoModeloDeMovimentacao : modeloEmFoco === 'cancelamento' ? campoDoModeloDeCancelamento : campoDoModeloDeConclusao;
+    const textoAtual = modeloEmFoco === 'movimentacao' ? modeloDigitado : modeloEmFoco === 'cancelamento' ? modeloDeCancelamentoDigitado : modeloDeConclusaoDigitado;
+    const definirTexto = modeloEmFoco === 'movimentacao' ? definirModeloDigitado : modeloEmFoco === 'cancelamento' ? definirModeloDeCancelamentoDigitado : definirModeloDeConclusaoDigitado;
+    const inicio = referencia.current?.selectionStart ?? textoAtual.length;
+    const fim = referencia.current?.selectionEnd ?? inicio;
+    definirTexto(`${textoAtual.slice(0, inicio)}${campo}${textoAtual.slice(fim)}`);
+    window.requestAnimationFrame(() => { referencia.current?.focus(); referencia.current?.setSelectionRange(inicio + campo.length, inicio + campo.length); });
+  }
   const nomeDoPerfil = (perfil: UsuarioDoSistema['perfil']) => perfil === 'administrador_principal' ? 'Administrador principal' : perfil === 'administrador' ? 'Administrador' : 'Operador';
   return <>
+    <section className="licenciamento-configuracao"><div className="titulo-configuracao"><div><b>Licenciamento do sistema</b><p>Informações da instalação e da licença atualmente reconhecida.</p></div><button className="botao-tabela" onClick={() => { window.location.href = '/ativacao?destino=%2F'; }}>Atualizar licença</button></div>{informacoesDaLicenca ? <div className="grade-licenciamento"><div><span>Situação</span><strong className={`situacao-licenca ${informacoesDaLicenca.situacao}`}>{informacoesDaLicenca.situacao}</strong></div><div><span>Sistema</span><strong>{informacoesDaLicenca.licenca?.sistemaId ?? 'Não identificado'}</strong></div><div><span>Cliente</span><strong>{informacoesDaLicenca.licenca?.clienteNome ?? 'Não identificado'}</strong></div><div><span>Código do cliente</span><strong>{informacoesDaLicenca.licenca?.clienteId ?? '—'}</strong></div><div><span>Instalação</span><strong className="codigo-licenca">{informacoesDaLicenca.instalacaoId || 'Não configurada'}</strong></div><div><span>Licença</span><strong className="codigo-licenca">{informacoesDaLicenca.licenca?.licencaId ?? '—'}</strong></div><div><span>Emitida em</span><strong>{informacoesDaLicenca.licenca ? formatarDataHoraDaLicenca(informacoesDaLicenca.licenca.emitidaEm) : '—'}</strong></div><div><span>Válida até</span><strong>{informacoesDaLicenca.licenca ? formatarDataHoraDaLicenca(informacoesDaLicenca.licenca.validaAte) : '—'}</strong></div><div><span>Tolerância até</span><strong>{informacoesDaLicenca.licenca ? formatarDataHoraDaLicenca(informacoesDaLicenca.licenca.toleranciaAte) : '—'}</strong></div></div> : <p>Informações de licenciamento indisponíveis.</p>}<p className="nota-seguranca">Por segurança, o token completo e a chave de validação não são exibidos.</p></section>
     <section className="configuracao-cor"><div><b>Cor do sistema</b><p>Escolha uma cor recente ou informe qualquer cor hexadecimal.</p></div><div className="cores-recentes">{coresRecentes.map((cor) => <button key={cor} className={cor.toUpperCase() === corPrincipal.toUpperCase() ? 'selecionada' : ''} style={{ backgroundColor: cor }} onClick={() => alterarCorPrincipal(cor)} title={`Usar ${cor}`} aria-label={`Usar cor ${cor}`} />)}</div><div className="cor-personalizada"><input type="color" value={corDigitada} onChange={(evento) => definirCorDigitada(evento.target.value.toUpperCase())} aria-label="Selecionar cor" /><input value={corDigitada} maxLength={7} onChange={(evento) => definirCorDigitada(evento.target.value.toUpperCase())} aria-label="Código hexadecimal" /><button className="botao-principal" onClick={() => alterarCorPrincipal(corDigitada)} disabled={!/^#[0-9A-F]{6}$/.test(corDigitada)}>Aplicar cor</button></div></section>
+    <section className="configuracao-whatsapp">
+      <div className="titulo-configuracao"><div><b>Mensagens pelo WhatsApp</b><p>Personalize separadamente as mensagens de movimentação, cancelamento e finalização.</p></div></div>
+      <div className="modelos-whatsapp">
+        <div className={modeloEmFoco === 'movimentacao' ? 'modelo-em-foco' : ''}><label htmlFor="modelo-mensagem-whatsapp">Confirmação ou alteração</label><textarea ref={campoDoModeloDeMovimentacao} id="modelo-mensagem-whatsapp" value={modeloDigitado} maxLength={3000} rows={9} onFocus={() => definirModeloEmFoco('movimentacao')} onChange={(evento) => definirModeloDigitado(evento.target.value)} /><button className="botao-secundario" type="button" onClick={() => definirModeloDigitado(modeloPadraoDaMensagemWhatsapp)}>Restaurar movimentação</button></div>
+        <div className={modeloEmFoco === 'cancelamento' ? 'modelo-em-foco' : ''}><label htmlFor="modelo-mensagem-whatsapp-cancelamento">Reserva cancelada</label><textarea ref={campoDoModeloDeCancelamento} id="modelo-mensagem-whatsapp-cancelamento" value={modeloDeCancelamentoDigitado} maxLength={3000} rows={9} onFocus={() => definirModeloEmFoco('cancelamento')} onChange={(evento) => definirModeloDeCancelamentoDigitado(evento.target.value)} /><button className="botao-secundario" type="button" onClick={() => definirModeloDeCancelamentoDigitado(modeloPadraoDaMensagemWhatsappCancelamento)}>Restaurar cancelamento</button></div>
+        <div className={modeloEmFoco === 'conclusao' ? 'modelo-em-foco' : ''}><label htmlFor="modelo-mensagem-whatsapp-conclusao">Finalização da hospedagem</label><textarea ref={campoDoModeloDeConclusao} id="modelo-mensagem-whatsapp-conclusao" value={modeloDeConclusaoDigitado} maxLength={3000} rows={9} onFocus={() => definirModeloEmFoco('conclusao')} onChange={(evento) => definirModeloDeConclusaoDigitado(evento.target.value)} /><button className="botao-secundario" type="button" onClick={() => definirModeloDeConclusaoDigitado(modeloPadraoDaMensagemWhatsappConclusao)}>Restaurar finalização</button></div>
+      </div>
+      <div className="campos-whatsapp"><b>Campos disponíveis</b><p>Posicione o cursor em uma mensagem e clique diretamente no campo desejado.</p><div>{camposDaMensagemWhatsapp.map(([campo, descricao]) => <button type="button" className="campo-whatsapp" key={campo} title={`Inserir ${campo}`} onClick={() => inserirCampoNoCursor(campo)}><code>{campo}</code><span>{descricao}</span></button>)}</div></div>
+      <div className="acoes-configuracao"><button className="botao-principal" type="button" disabled={!modeloDigitado.trim() || !modeloDeCancelamentoDigitado.trim() || !modeloDeConclusaoDigitado.trim()} onClick={() => salvarModelosDaMensagemWhatsapp(modeloDigitado, modeloDeCancelamentoDigitado, modeloDeConclusaoDigitado)}>Salvar mensagens</button></div>
+    </section>
     {perfilAtual !== 'operador' && <section className="usuarios-configuracao"><div className="titulo-configuracao"><div><b>Usuários e acessos</b><p>Cadastre pessoas autorizadas, defina níveis, redefina senhas ou suspenda acessos.</p></div><button className="botao-principal" onClick={() => abrirUsuario()}>＋ Novo usuário</button></div><TabelaVaziaOuConteudo vazia={!usuarios.length} textoVazio="Nenhum usuário cadastrado"><table><thead><tr><th>Nome</th><th>Usuário</th><th>Nível</th><th>Situação</th><th></th></tr></thead><tbody>{usuarios.map((usuario) => <tr key={usuario.id}><td><b>{usuario.nome}</b></td><td>{usuario.usuario}</td><td>{nomeDoPerfil(usuario.perfil)}</td><td><span className={`situacao ${usuario.ativo ? 'disponivel' : 'inativa'}`}>{usuario.ativo ? 'Ativo' : 'Inativo'}</span></td><td><button className="botao-tabela" onClick={() => abrirUsuario(usuario)}>Editar</button></td></tr>)}</tbody></table></TabelaVaziaOuConteudo></section>}
     <section className="precos-sazonais"><div className="titulo-configuracao"><div><b>Preços sazonais</b><p>Defina valores gerais ou específicos por acomodação e período.</p></div><button className="botao-principal" onClick={novaRegra}>＋ Nova regra de preço</button></div><section className="ordem-precos"><b>Ordem usada no cálculo</b><div><span>1. Regra específica da acomodação</span><span>2. Regra geral do período</span><span>3. Diária-base da acomodação</span></div><p>O total sempre corresponde à quantidade de diárias × o valor aplicável em cada data.</p></section><TabelaVaziaOuConteudo vazia={!regras.length} textoVazio="Nenhuma regra sazonal cadastrada"><table><thead><tr><th>Período</th><th>Vigência</th><th>Aplicação</th><th>Diária</th><th>Situação</th><th></th></tr></thead><tbody>{regras.map((regra) => <tr key={regra.id}><td><b>{regra.nome}</b></td><td>{formatarData(regra.dataInicial)} a {formatarData(regra.dataFinal)}</td><td>{regra.acomodacaoId ? acomodacoes.find((item) => item.id === regra.acomodacaoId)?.identificacao ?? 'Acomodação' : 'Todas as acomodações'}</td><td><b>{regra.valorDaDiaria.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</b></td><td><span className={`situacao ${regra.ativa ? 'disponivel' : 'inativa'}`}>{regra.ativa ? 'Ativa' : 'Inativa'}</span></td><td><button className="botao-tabela" onClick={() => editarRegra(regra)}>Editar</button></td></tr>)}</tbody></table></TabelaVaziaOuConteudo></section>
   </>;
@@ -493,4 +606,3 @@ function FichaDoHospede({ hospede, reservas, acomodacoes, editarReserva }: { hos
   const historico = reservas.filter((item) => item.hospedeResponsavelId === hospede.id).sort((a, b) => b.dataDeEntrada.localeCompare(a.dataDeEntrada));
   return <div className="ficha-hospede"><div className="dados-hospede"><div><small>Nome</small><b>{hospede.nomeCompleto}</b></div><div><small>Telefone</small><b>{hospede.telefone}</b></div><div><small>CPF</small><b>{hospede.cpf || 'Não informado'}</b></div><div><small>E-mail</small><b>{hospede.email || 'Não informado'}</b></div></div><h3>Histórico de reservas ({historico.length})</h3><div className="historico-hospede">{historico.map((reserva) => <button key={reserva.id} onClick={() => editarReserva(reserva)}><span><b>{acomodacoes.find((item) => item.id === reserva.acomodacaoId)?.identificacao ?? 'Acomodação'}</b><small>{formatarData(reserva.dataDeEntrada)} a {formatarData(reserva.dataDeSaida)}</small></span><strong>{reserva.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong></button>)}</div></div>;
 }
-

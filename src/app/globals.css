@@ -318,6 +318,20 @@ nav button small {
     border-color: var(--verde)
 }
 
+.cartao-ativacao {
+    width: min(620px, calc(100% - 28px))
+}
+
+.cartao-ativacao textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 120px;
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    padding: 11px;
+    font: inherit
+}
+
 .cartao-login .botao-principal {
     width: 100%;
     justify-content: center;
@@ -403,10 +417,35 @@ header p {
 }
 
 .usuarios-configuracao { margin: 20px 0; }
+.acoes-tabela { display: flex; align-items: center; gap: 6px; }
+.botao-whatsapp { border: 1px solid #1fad59; background: #e9f9ef; color: #0b6b34; border-radius: 8px; padding: 7px 10px; font-weight: 700; white-space: nowrap; }
+.botao-whatsapp:hover { background: #d8f3e2; }
+.botao-whatsapp.secundario { background: #fff; }
+.menu-whatsapp { position: relative; }
+.menu-whatsapp summary { list-style: none; cursor: pointer; border: 1px solid #1fad59; background: #e9f9ef; color: #0b6b34; border-radius: 8px; padding: 7px 10px; font-weight: 700; white-space: nowrap; }
+.menu-whatsapp summary::-webkit-details-marker { display: none; }
+.menu-whatsapp[open] summary { background: #d8f3e2; }
+.menu-whatsapp>div { position: absolute; z-index: 20; right: 0; top: calc(100% + 5px); width: 190px; display: grid; gap: 4px; padding: 6px; border: 1px solid var(--linha); border-radius: 10px; background: #fff; box-shadow: 0 10px 28px #0002; }
+.menu-whatsapp>div button { width: 100%; border: 0; border-radius: 7px; padding: 8px; background: transparent; color: var(--texto); text-align: left; font-weight: 700; }
+.menu-whatsapp>div button:hover { background: var(--tema-claro); color: var(--verde-escuro); }
 .titulo-configuracao { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .titulo-configuracao p { margin: 4px 0 0; color: var(--texto-suave); }
+.licenciamento-configuracao { background: #fff; border: 1px solid var(--linha); border-radius: 16px; padding: 18px; margin-bottom: 16px; }
+.grade-licenciamento { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.grade-licenciamento>div { background: var(--tema-clarissimo); border: 1px solid var(--tema-borda); border-radius: 12px; padding: 12px; min-width: 0; }
+.grade-licenciamento span { display: block; color: var(--texto-suave); font-size: .78rem; margin-bottom: 5px; }
+.grade-licenciamento strong { display: block; overflow-wrap: anywhere; }
+.situacao-licenca { text-transform: capitalize; color: #167548; }
+.situacao-licenca.tolerancia { color: #a15c00; }
+.situacao-licenca.expirada,.situacao-licenca.invalida,.situacao-licenca.ausente,.situacao-licenca.suspensa,.situacao-licenca.revogada,.situacao-licenca.cadastro_inativo,.situacao-licenca.central_indisponivel { color: #b42318; }
+.codigo-licenca { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .78rem; }
+.nota-seguranca { color: var(--texto-suave); font-size: .78rem; margin: 12px 0 0; }
+.alerta-licenca { display: block; margin-top: 5px; color: #b9f4d3; font-size: .7rem; font-weight: 600; }
+.alerta-licenca.tolerancia { color: #ffd791; }
+.alerta-licenca.expirada,.alerta-licenca.invalida,.alerta-licenca.ausente,.alerta-licenca.suspensa,.alerta-licenca.revogada,.alerta-licenca.cadastro_inativo,.alerta-licenca.central_indisponivel { color: #ffb5ae; }
 .precos-sazonais { margin-top: 20px; }
 .precos-sazonais>.tabela { margin-top: 14px; }
+@media (max-width: 760px) { .grade-licenciamento { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .titulo-configuracao { align-items: stretch; flex-direction: column; } }
 
 .indicadores {
@@ -1040,6 +1079,114 @@ header p {
 .cor-personalizada input[type=color] {
     width: 46px;
     padding: 3px
+}
+
+.configuracao-whatsapp {
+    background: #fff;
+    border: 1px solid var(--linha);
+    border-radius: 16px;
+    padding: 18px;
+    margin: 16px 0
+}
+
+.modelos-whatsapp {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin-top: 14px
+}
+
+.modelos-whatsapp label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 6px
+}
+
+.modelos-whatsapp textarea {
+    width: 100%;
+    min-height: 210px;
+    resize: vertical;
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+    padding: 12px;
+    background: #fff;
+    color: var(--texto);
+    font: inherit;
+    line-height: 1.5
+}
+
+.modelos-whatsapp textarea:focus {
+    outline: 2px solid color-mix(in srgb, var(--verde) 28%, transparent);
+    border-color: var(--verde)
+}
+
+.modelos-whatsapp .botao-secundario {
+    margin-top: 8px
+}
+
+.modelos-whatsapp>div {
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 8px;
+    transition: border-color .15s, background .15s
+}
+
+.modelos-whatsapp>div.modelo-em-foco {
+    border-color: var(--verde);
+    background: var(--tema-claro)
+}
+
+.campos-whatsapp {
+    margin-top: 16px
+}
+
+.campos-whatsapp>div {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 8px;
+    margin-top: 8px
+}
+
+.campo-whatsapp {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    text-align: left;
+    border: 1px solid var(--linha);
+    border-radius: 9px;
+    padding: 8px 10px;
+    background: var(--tema-claro);
+    color: var(--texto);
+    cursor: pointer;
+    font: inherit
+}
+
+.campo-whatsapp:hover {
+    border-color: var(--verde)
+}
+
+.campos-whatsapp code {
+    display: block;
+    max-width: 100%;
+    color: var(--verde-escuro);
+    font-weight: 800;
+    white-space: nowrap
+}
+
+.campos-whatsapp span {
+    display: block;
+    color: var(--suave);
+    font-size: .8rem;
+    line-height: 1.3
+}
+
+.acoes-configuracao {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px
 }
 
 .cor-personalizada input:not([type=color]) {
@@ -1733,5 +1880,17 @@ header p {
     .cor-personalizada button {
         grid-column: 1/-1
     }
-}
 
+    .campos-whatsapp>div {
+        grid-template-columns: 1fr
+    }
+
+    .modelos-whatsapp {
+        grid-template-columns: 1fr
+    }
+
+    .acoes-configuracao {
+        display: grid;
+        grid-template-columns: 1fr
+    }
+}

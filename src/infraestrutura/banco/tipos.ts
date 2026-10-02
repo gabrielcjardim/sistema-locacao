@@ -6,13 +6,14 @@ import type { BloqueioDeAgenda } from '@/dominio/bloqueio-de-agenda';
 import type { Vistoria } from '@/dominio/vistoria';
 import type { LancamentoFinanceiro } from '@/dominio/lancamento-financeiro';
 import type { UsuarioDoSistema } from '@/dominio/usuario-do-sistema';
+import type { ConfiguracoesDoSistema } from '@/dominio/configuracoes-do-sistema';
 
 export interface BancoLocal {
   acomodacoes: Acomodacao[];
   hospedes: Hospede[];
   reservas: Reserva[];
   regrasDePreco: RegraDePreco[];
-  configuracoes: { corPrincipal: string; coresRecentes: string[] };
+  configuracoes: ConfiguracoesDoSistema;
   bloqueiosDeAgenda: BloqueioDeAgenda[];
   vistorias: Vistoria[];
   lancamentosFinanceiros: LancamentoFinanceiro[];

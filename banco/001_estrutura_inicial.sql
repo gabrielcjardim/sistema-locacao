@@ -31,7 +31,8 @@ create table if not exists reservas (
   valor_total numeric(12,2) not null check (valor_total >= 0), tipo_locacao varchar(30) not null,
   valor_calculado numeric(12,2) not null default 0 check (valor_calculado >= 0),
   ajuste_valor numeric(12,2) not null default 0, motivo_ajuste varchar(300) not null default '',
-  situacao varchar(30) not null default 'confirmada', criado_em timestamptz not null default now(),
+  situacao varchar(30) not null default 'confirmada', ultima_acao varchar(20) not null default 'confirmada',
+  resumo_ultima_alteracao text not null default '', criado_em timestamptz not null default now(),
   constraint periodo_valido check (data_saida > data_entrada)
 );
 
@@ -41,6 +42,8 @@ alter table reservas add column if not exists ajuste_valor numeric(12,2) not nul
 alter table reservas add column if not exists motivo_ajuste varchar(300) not null default '';
 alter table reservas add column if not exists hora_entrada varchar(5) not null default '14:00';
 alter table reservas add column if not exists hora_saida varchar(5) not null default '11:00';
+alter table reservas add column if not exists ultima_acao varchar(20) not null default 'confirmada';
+alter table reservas add column if not exists resumo_ultima_alteracao text not null default '';
 update reservas set data_entrada = date_trunc('day', data_entrada) + hora_entrada::time, data_saida = date_trunc('day', data_saida) + hora_saida::time;
 update reservas set valor_calculado = valor_total where valor_calculado = 0 and valor_total <> 0 and ajuste_valor = 0;
 
@@ -59,11 +62,55 @@ create table if not exists configuracoes_sistema (
   id smallint primary key default 1 check (id = 1),
   cor_principal varchar(7) not null default '#FF5C00',
   cores_recentes jsonb not null default '["#FF5C00"]'::jsonb,
+  modelo_mensagem_whatsapp text not null default $$Olá, {{nome_hospede}}! Sua reserva foi confirmada.
+
+Acomodação: {{acomodacao}}
+Entrada: {{data_entrada}} às {{hora_entrada}}
+Saída: {{data_saida}} às {{hora_saida}}
+Hóspedes: {{quantidade_hospedes}}
+Valor total: {{valor_total}}
+
+Aguardamos você!$$,
+  modelo_mensagem_whatsapp_conclusao text not null default $$Olá, {{nome_hospede}}!
+
+Esperamos que tenha aproveitado sua hospedagem na acomodação {{acomodacao}}.
+Foi um prazer receber você. Agradecemos pela preferência e esperamos vê-lo novamente em breve!$$,
+  modelo_mensagem_whatsapp_cancelamento text not null default $$Olá, {{nome_hospede}}!
+
+Sua hospedagem foi cancelada.
+
+*Acomodação:* {{acomodacao}}
+*Entrada:* {{data_entrada}} às {{hora_entrada}}
+*Saída:* {{data_saida}} às {{hora_saida}}
+*Hóspedes:* {{quantidade_hospedes}}
+*Valor total:* {{valor_total}}$$,
   atualizado_em timestamptz not null default now()
 );
 
 insert into configuracoes_sistema (id, cor_principal) values (1, '#FF5C00') on conflict (id) do nothing;
 alter table configuracoes_sistema add column if not exists cores_recentes jsonb not null default '["#FF5C00"]'::jsonb;
+alter table configuracoes_sistema add column if not exists modelo_mensagem_whatsapp text not null default $$Olá, {{nome_hospede}}! Sua reserva foi confirmada.
+
+Acomodação: {{acomodacao}}
+Entrada: {{data_entrada}} às {{hora_entrada}}
+Saída: {{data_saida}} às {{hora_saida}}
+Hóspedes: {{quantidade_hospedes}}
+Valor total: {{valor_total}}
+
+Aguardamos você!$$;
+alter table configuracoes_sistema add column if not exists modelo_mensagem_whatsapp_conclusao text not null default $$Olá, {{nome_hospede}}!
+
+Esperamos que tenha aproveitado sua hospedagem na acomodação {{acomodacao}}.
+Foi um prazer receber você. Agradecemos pela preferência e esperamos vê-lo novamente em breve!$$;
+alter table configuracoes_sistema add column if not exists modelo_mensagem_whatsapp_cancelamento text not null default $$Olá, {{nome_hospede}}!
+
+Sua hospedagem foi cancelada.
+
+*Acomodação:* {{acomodacao}}
+*Entrada:* {{data_entrada}} às {{hora_entrada}}
+*Saída:* {{data_saida}} às {{hora_saida}}
+*Hóspedes:* {{quantidade_hospedes}}
+*Valor total:* {{valor_total}}$$;
 
 create table if not exists bloqueios_agenda (
   id uuid primary key default gen_random_uuid(), acomodacao_id uuid not null references acomodacoes(id),

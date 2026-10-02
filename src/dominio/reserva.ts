@@ -39,6 +39,8 @@ export interface Reserva {
   motivoDoAjuste: string;
   tipoDeLocacao: DadosDaReserva['tipoDeLocacao'];
   situacao: DadosDaReserva['situacao'];
+  ultimaAcao: 'confirmada' | 'alterada' | 'cancelada' | 'concluida';
+  resumoDaUltimaAlteracao: string;
   criadoEm: string;
 }
 
