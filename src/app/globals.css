@@ -205,6 +205,34 @@ nav button small {
     background: var(--tema-hover)
 }
 
+.rodape-menu .usuario-logado {
+    display: grid;
+    gap: 3px;
+    background: color-mix(in srgb, var(--verde) 82%, #fff)
+}
+
+.usuario-logado span {
+    font-size: .68rem;
+    font-weight: 650;
+    opacity: .82
+}
+
+.usuario-logado b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.aviso-permissao {
+    grid-column: 1/-1;
+    margin: 0;
+    padding: 11px 13px;
+    border-radius: 10px;
+    background: var(--tema-clarissimo);
+    color: var(--suave);
+    font-size: .8rem
+}
+
 .rodape-menu small {
     color: color-mix(in srgb, var(--verde) 15%, #fff)
 }

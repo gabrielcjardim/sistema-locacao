@@ -6,8 +6,9 @@ export async function GET(requisicao: NextRequest) {
   const sessao = obterSessao(requisicao.cookies.get(nomeDoCookieDaSessao)?.value);
   if (sessao) {
     const usuarioAtual = await obterUsuarioParaAutenticacao(sessao.usuario);
-    return NextResponse.json({ usuario: sessao.usuario, perfil: usuarioAtual?.perfil ?? sessao.perfil });
+    return NextResponse.json({ id: usuarioAtual?.id, nome: usuarioAtual?.nome ?? sessao.usuario, usuario: usuarioAtual?.usuario ?? sessao.usuario, perfil: usuarioAtual?.perfil ?? sessao.perfil });
   }
-  if (!autenticacaoObrigatoria()) return NextResponse.json({ usuario: 'desenvolvimento', perfil: 'administrador_principal' });
+  if (!autenticacaoObrigatoria()) return NextResponse.json({ nome: 'Desenvolvimento', usuario: 'desenvolvimento', perfil: 'administrador_principal' });
   return NextResponse.json({ mensagem: 'Sessão inválida.' }, { status: 401 });
 }
+

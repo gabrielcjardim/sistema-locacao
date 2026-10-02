@@ -26,5 +26,12 @@ export const esquemaDeAlteracaoDoUsuario = z.object({
   perfil: z.enum(['administrador_principal', 'administrador', 'operador']),
 });
 
+export const esquemaDaPropriaConta = z.object({
+  nome: z.string().trim().min(2).max(120),
+  senha: z.string().max(200).optional().default(''),
+}).refine((dados) => !dados.senha || dados.senha.length >= 10, { message: 'A nova senha deve ter pelo menos 10 caracteres.', path: ['senha'] });
+
 export type DadosDeNovoUsuario = z.infer<typeof esquemaDeNovoUsuario>;
 export type DadosDeAlteracaoDoUsuario = z.infer<typeof esquemaDeAlteracaoDoUsuario>;
+export type DadosDaPropriaConta = z.infer<typeof esquemaDaPropriaConta>;
+

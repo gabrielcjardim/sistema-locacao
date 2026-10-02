@@ -1,5 +1,5 @@
 import { randomBytes, scryptSync } from 'node:crypto';
-import type { DadosDeAlteracaoDoUsuario, DadosDeNovoUsuario, UsuarioDoSistema } from '@/dominio/usuario-do-sistema';
+import type { DadosDaPropriaConta, DadosDeAlteracaoDoUsuario, DadosDeNovoUsuario, UsuarioDoSistema } from '@/dominio/usuario-do-sistema';
 import { gravarBancoLocal, lerBancoLocal } from '@/infraestrutura/banco/arquivo-local';
 import { conexaoPostgres, garantirEstruturaDoBanco } from '@/infraestrutura/banco/conexao';
 
@@ -47,9 +47,30 @@ export async function atualizarUsuario(id: string, dados: DadosDeAlteracaoDoUsua
   finally { await sql.end(); }
 }
 
+export async function atualizarPropriaConta(usuarioAtual: string, dados: DadosDaPropriaConta): Promise<UsuarioDoSistema> {
+  const sql = conexaoPostgres();
+  if (!sql) {
+    const banco = await lerBancoLocal();
+    const indice = banco.usuariosDoSistema.findIndex((item) => normalizar(item.usuario) === normalizar(usuarioAtual));
+    if (indice < 0) throw new Error('USUARIO_NAO_ENCONTRADO');
+    const atual = banco.usuariosDoSistema[indice];
+    banco.usuariosDoSistema[indice] = { ...atual, nome: dados.nome, senhaHash: dados.senha ? criarHash(dados.senha) : atual.senhaHash, atualizadoEm: new Date().toISOString() };
+    await gravarBancoLocal(banco);
+    const { senhaHash: _senha, ...publico } = banco.usuariosDoSistema[indice];
+    return publico;
+  }
+  try {
+    const senhaHash = dados.senha ? criarHash(dados.senha) : null;
+    const [linha] = await sql`update usuarios_sistema set nome=${dados.nome}, senha_hash=coalesce(${senhaHash},senha_hash), atualizado_em=now() where usuario_normalizado=${normalizar(usuarioAtual)} returning id,nome,usuario,ativo,perfil,criado_em,atualizado_em`;
+    if (!linha) throw new Error('USUARIO_NAO_ENCONTRADO');
+    return mapear(linha);
+  } finally { await sql.end(); }
+}
+
 export async function obterUsuarioParaAutenticacao(usuario: string) {
   await garantirAdministradorInicial(); const normalizado = normalizar(usuario); const sql = conexaoPostgres();
-  if (!sql) { const encontrado = (await lerBancoLocal()).usuariosDoSistema.find((item) => normalizar(item.usuario) === normalizado); return encontrado ? { usuario: encontrado.usuario, senhaHash: encontrado.senhaHash, ativo: encontrado.ativo, perfil: encontrado.perfil ?? 'operador' as const } : null; }
-  try { const [linha] = await sql`select usuario,senha_hash,ativo,perfil from usuarios_sistema where usuario_normalizado=${normalizado}`; return linha ? { usuario: linha.usuario as string, senhaHash: linha.senha_hash as string, ativo: linha.ativo as boolean, perfil: linha.perfil as 'administrador_principal' | 'administrador' | 'operador' } : null; }
+  if (!sql) { const encontrado = (await lerBancoLocal()).usuariosDoSistema.find((item) => normalizar(item.usuario) === normalizado); return encontrado ? { id: encontrado.id, nome: encontrado.nome, usuario: encontrado.usuario, senhaHash: encontrado.senhaHash, ativo: encontrado.ativo, perfil: encontrado.perfil ?? 'operador' as const } : null; }
+  try { const [linha] = await sql`select id,nome,usuario,senha_hash,ativo,perfil from usuarios_sistema where usuario_normalizado=${normalizado}`; return linha ? { id: linha.id as string, nome: linha.nome as string, usuario: linha.usuario as string, senhaHash: linha.senha_hash as string, ativo: linha.ativo as boolean, perfil: linha.perfil as 'administrador_principal' | 'administrador' | 'operador' } : null; }
   finally { await sql.end(); }
 }
+
