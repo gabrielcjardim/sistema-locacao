@@ -91,3 +91,23 @@ export async function atualizarReserva(id: string, dados: DadosDaReserva): Promi
     return { id, ...dados, dataDeEntrada: entrada.toISOString(), dataDeSaida: saida.toISOString(), criadoEm: linha.criado_em.toISOString() };
   } finally { await sql.end(); }
 }
+
+export async function excluirReserva(id: string): Promise<void> {
+  const sql = conexaoPostgres();
+  if (!sql) {
+    const banco = await lerBancoLocal();
+    if (banco.vistorias.some((item) => item.reservaId === id) || banco.lancamentosFinanceiros.some((item) => item.reservaId === id)) throw new Error('RESERVA_COM_HISTORICO');
+    const tamanho = banco.reservas.length;
+    banco.reservas = banco.reservas.filter((item) => item.id !== id);
+    if (banco.reservas.length === tamanho) throw new Error('RESERVA_NAO_ENCONTRADA');
+    await gravarBancoLocal(banco);
+    return;
+  }
+  try {
+    const [vinculo] = await sql`select id from vistorias where reserva_id=${id} union all select id from lancamentos_financeiros where reserva_id=${id} limit 1`;
+    if (vinculo) throw new Error('RESERVA_COM_HISTORICO');
+    const removidas = await sql`delete from reservas where id=${id} returning id`;
+    if (!removidas.length) throw new Error('RESERVA_NAO_ENCONTRADA');
+  } finally { await sql.end(); }
+}
+

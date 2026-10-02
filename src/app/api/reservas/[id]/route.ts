@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { esquemaDaReserva } from '@/dominio/reserva';
-import { atualizarReserva } from '@/infraestrutura/repositorios/repositorio-de-reservas';
+import { atualizarReserva, excluirReserva } from '@/infraestrutura/repositorios/repositorio-de-reservas';
 
 export const runtime = 'nodejs';
 
@@ -24,3 +24,9 @@ export async function PATCH(requisicao: Request, contexto: RouteContext<'/api/re
     return NextResponse.json({ mensagem: mensagens[codigo] ?? 'Revise os dados da reserva.' }, { status: situacao });
   }
 }
+
+export async function DELETE(_: Request, contexto: RouteContext<'/api/reservas/[id]'>) {
+  try { const { id } = await contexto.params; await excluirReserva(id); return new NextResponse(null, { status: 204 }); }
+  catch (erro) { const codigo = erro instanceof Error ? erro.message : ''; return NextResponse.json({ mensagem: codigo === 'RESERVA_COM_HISTORICO' ? 'A reserva possui vistoria ou lançamento financeiro vinculado. Remova esses registros primeiro ou cancele a reserva para preservar o histórico.' : 'A reserva não foi encontrada.' }, { status: codigo === 'RESERVA_COM_HISTORICO' ? 409 : 404 }); }
+}
+
