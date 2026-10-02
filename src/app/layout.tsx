@@ -1,5 +1,9 @@
+import type { CSSProperties } from 'react';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { obterConfiguracoes } from '@/infraestrutura/repositorios/repositorio-de-configuracoes';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Meus Aptos',
@@ -9,6 +13,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: '#143d36', width: 'device-width', initialScale: 1 };
 
-export default function LayoutPrincipal({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="pt-BR"><body>{children}</body></html>;
+export default async function LayoutPrincipal({ children }: Readonly<{ children: React.ReactNode }>) {
+  const configuracoes = await obterConfiguracoes();
+  return <html lang="pt-BR" style={{ '--verde': configuracoes.corPrincipal } as CSSProperties}><body>{children}</body></html>;
 }

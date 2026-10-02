@@ -50,6 +50,7 @@ export default function PaginaInicial() {
   const [acomodacaoEmEdicaoId, definirAcomodacaoEmEdicaoId] = useState<string | null>(null);
   const [menuAberto, definirMenuAberto] = useState(false);
   const [corPrincipal, definirCorPrincipal] = useState('#FF5C00');
+  const [temaCarregado, definirTemaCarregado] = useState(false);
   const [coresRecentes, definirCoresRecentes] = useState<string[]>(['#FF5C00']);
   const [bloqueios, definirBloqueios] = useState<BloqueioDeAgenda[]>([]);
   const [diaSelecionado, definirDiaSelecionado] = useState<Date | null>(null);
@@ -74,6 +75,7 @@ export default function PaginaInicial() {
     definirReservas(listaDeReservas);
     definirRegrasDePreco(listaDeRegras);
     definirCorPrincipal(configuracoes.corPrincipal);
+    definirTemaCarregado(true);
     definirCoresRecentes(configuracoes.coresRecentes.slice(0, 5));
     definirBloqueios(listaDeBloqueios);
     definirVistorias(listaDeVistorias);
@@ -133,7 +135,7 @@ export default function PaginaInicial() {
   async function alterarCorPrincipal(cor: string) {
     const corNormalizada = cor.toUpperCase();
     const novasCoresRecentes = [corNormalizada, ...coresRecentes.filter((item) => item.toUpperCase() !== corNormalizada)].slice(0, 5);
-    definirCorPrincipal(corNormalizada); definirCoresRecentes(novasCoresRecentes);
+    definirCorPrincipal(corNormalizada); definirCoresRecentes(novasCoresRecentes); definirTemaCarregado(true);
     try {
       const salva = await enviarFormulario('/api/configuracoes', { corPrincipal: corNormalizada, coresRecentes: novasCoresRecentes }, 'PATCH') as { corPrincipal: string; coresRecentes: string[] };
       definirCorPrincipal(salva.corPrincipal); definirCoresRecentes(salva.coresRecentes); definirMensagem('Cor do sistema atualizada.');
@@ -266,7 +268,7 @@ export default function PaginaInicial() {
     '--fundo': misturarComBranco(corPrincipal, 4),
     '--linha': misturarComBranco(corPrincipal, 28),
   } as CSSProperties;
-  return <div className="aplicacao" style={variaveisDoTema}>
+  return <div className="aplicacao" style={temaCarregado ? variaveisDoTema : undefined}>
     <button className="botao-menu-mobile" onClick={() => definirMenuAberto(true)} aria-label="Abrir menu" aria-expanded={menuAberto}>☰</button>
     {menuAberto && <button className="fundo-menu-mobile" onClick={() => definirMenuAberto(false)} aria-label="Fechar menu" />}
     <aside className={`barra-lateral${menuAberto ? ' menu-aberto' : ''}`}><div className="marca"><span>⌂</span> Meus Aptos<button className="fechar-menu-mobile" onClick={() => definirMenuAberto(false)} aria-label="Fechar menu">×</button></div><nav>
