@@ -31,3 +31,44 @@ export async function cadastrarRegraDePreco(dados: DadosDaRegraDePreco): Promise
     return { id, nome: dados.nome, dataInicial: dados.dataInicial.toISOString(), dataFinal: dados.dataFinal.toISOString(), valorDaDiaria: dados.valorDaDiaria, acomodacaoId: dados.acomodacaoId, ativa: dados.ativa, criadoEm: linha.criado_em.toISOString() };
   } finally { await sql.end(); }
 }
+
+export async function atualizarRegraDePreco(id: string, dados: DadosDaRegraDePreco): Promise<RegraDePreco> {
+  const sql = conexaoPostgres();
+  if (!sql) {
+    const banco = await lerBancoLocal();
+    const indice = banco.regrasDePreco.findIndex((item) => item.id === id);
+    if (indice < 0) throw new Error('REGRA_NAO_ENCONTRADA');
+    const conflito = banco.regrasDePreco.some((item) => item.id !== id && item.ativa && dados.ativa && item.acomodacaoId === dados.acomodacaoId && sobrepoe(dados.dataInicial, dados.dataFinal, new Date(item.dataInicial), new Date(item.dataFinal)));
+    if (conflito) throw new Error('PERIODO_SOBREPOSTO');
+    if (dados.acomodacaoId && !banco.acomodacoes.some((item) => item.id === dados.acomodacaoId)) throw new Error('ACOMODACAO_NAO_ENCONTRADA');
+    const atualizada: RegraDePreco = { ...banco.regrasDePreco[indice], nome: dados.nome, dataInicial: dados.dataInicial.toISOString(), dataFinal: dados.dataFinal.toISOString(), valorDaDiaria: dados.valorDaDiaria, acomodacaoId: dados.acomodacaoId, ativa: dados.ativa };
+    banco.regrasDePreco[indice] = atualizada;
+    await gravarBancoLocal(banco);
+    return atualizada;
+  }
+  try {
+    const [existente] = await sql`select criado_em from regras_de_preco where id=${id}`;
+    if (!existente) throw new Error('REGRA_NAO_ENCONTRADA');
+    const [conflito] = await sql`select id from regras_de_preco where id<>${id} and ativa=true and ${dados.ativa}=true and acomodacao_id is not distinct from ${dados.acomodacaoId} and data_inicial<=${dados.dataFinal} and data_final>=${dados.dataInicial} limit 1`;
+    if (conflito) throw new Error('PERIODO_SOBREPOSTO');
+    await sql`update regras_de_preco set nome=${dados.nome}, data_inicial=${dados.dataInicial}, data_final=${dados.dataFinal}, valor_diaria=${dados.valorDaDiaria}, acomodacao_id=${dados.acomodacaoId}, ativa=${dados.ativa} where id=${id}`;
+    return { id, nome: dados.nome, dataInicial: dados.dataInicial.toISOString(), dataFinal: dados.dataFinal.toISOString(), valorDaDiaria: dados.valorDaDiaria, acomodacaoId: dados.acomodacaoId, ativa: dados.ativa, criadoEm: existente.criado_em.toISOString() };
+  } finally { await sql.end(); }
+}
+
+export async function excluirRegraDePreco(id: string): Promise<void> {
+  const sql = conexaoPostgres();
+  if (!sql) {
+    const banco = await lerBancoLocal();
+    const quantidadeAnterior = banco.regrasDePreco.length;
+    banco.regrasDePreco = banco.regrasDePreco.filter((item) => item.id !== id);
+    if (banco.regrasDePreco.length === quantidadeAnterior) throw new Error('REGRA_NAO_ENCONTRADA');
+    await gravarBancoLocal(banco);
+    return;
+  }
+  try {
+    const removidas = await sql`delete from regras_de_preco where id=${id} returning id`;
+    if (!removidas.length) throw new Error('REGRA_NAO_ENCONTRADA');
+  } finally { await sql.end(); }
+}
+

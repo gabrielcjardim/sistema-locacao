@@ -377,6 +377,8 @@ header p {
 .usuarios-configuracao { margin: 20px 0; }
 .titulo-configuracao { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .titulo-configuracao p { margin: 4px 0 0; color: var(--texto-suave); }
+.precos-sazonais { margin-top: 20px; }
+.precos-sazonais>.tabela { margin-top: 14px; }
 @media (max-width: 640px) { .titulo-configuracao { align-items: stretch; flex-direction: column; } }
 
 .indicadores {

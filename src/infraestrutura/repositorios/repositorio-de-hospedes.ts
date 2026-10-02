@@ -29,3 +29,43 @@ export async function cadastrarHospede(dados: DadosDoHospede): Promise<Hospede> 
     return hospede;
   } finally { await sql.end(); }
 }
+
+export async function atualizarHospede(id: string, dados: DadosDoHospede): Promise<Hospede> {
+  const agora = new Date().toISOString();
+  const sql = conexaoPostgres();
+  if (!sql) {
+    const banco = await lerBancoLocal();
+    const indice = banco.hospedes.findIndex((item) => item.id === id);
+    if (indice < 0) throw new Error('HOSPEDE_NAO_ENCONTRADO');
+    if (dados.cpf && banco.hospedes.some((item) => item.id !== id && item.cpf === dados.cpf)) throw new Error('CPF_JA_CADASTRADO');
+    const atualizado: Hospede = { ...banco.hospedes[indice], ...dados, atualizadoEm: agora };
+    banco.hospedes[indice] = atualizado;
+    await gravarBancoLocal(banco);
+    return atualizado;
+  }
+  try {
+    const [linha] = await sql`update hospedes set nome_completo=${dados.nomeCompleto}, cpf=${dados.cpf || null}, telefone=${dados.telefone}, email=${dados.email || null}, observacoes=${dados.observacoes}, atualizado_em=now() where id=${id} returning criado_em, atualizado_em`;
+    if (!linha) throw new Error('HOSPEDE_NAO_ENCONTRADO');
+    return { id, ...dados, criadoEm: linha.criado_em.toISOString(), atualizadoEm: linha.atualizado_em.toISOString() };
+  } finally { await sql.end(); }
+}
+
+export async function excluirHospede(id: string): Promise<void> {
+  const sql = conexaoPostgres();
+  if (!sql) {
+    const banco = await lerBancoLocal();
+    if (banco.reservas.some((item) => item.hospedeResponsavelId === id)) throw new Error('HOSPEDE_COM_RESERVAS');
+    const quantidadeAnterior = banco.hospedes.length;
+    banco.hospedes = banco.hospedes.filter((item) => item.id !== id);
+    if (banco.hospedes.length === quantidadeAnterior) throw new Error('HOSPEDE_NAO_ENCONTRADO');
+    await gravarBancoLocal(banco);
+    return;
+  }
+  try {
+    const [vinculo] = await sql`select id from reservas where hospede_responsavel_id=${id} limit 1`;
+    if (vinculo) throw new Error('HOSPEDE_COM_RESERVAS');
+    const removidos = await sql`delete from hospedes where id=${id} returning id`;
+    if (!removidos.length) throw new Error('HOSPEDE_NAO_ENCONTRADO');
+  } finally { await sql.end(); }
+}
+
