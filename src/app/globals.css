@@ -841,6 +841,18 @@ header p {
     border-bottom: 1px solid var(--linha)
 }
 
+.cabecalho-visao-dia>.botao-principal {
+    display: none
+}
+
+.acao-agenda {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--linha);
+    background: var(--tema-clarissimo)
+}
+
 .cabecalho-visao-dia>div {
     display: flex;
     align-items: center;
@@ -1626,6 +1638,10 @@ header p {
 }
 
 @media(max-width:420px) {
+    .acao-agenda .botao-principal {
+        width: 100%
+    }
+
     main>header>.botao-principal {
         width: 100%
     }
