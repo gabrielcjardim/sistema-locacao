@@ -2,9 +2,14 @@ import type { Acomodacao, DadosDaAcomodacao } from '@/dominio/acomodacao';
 import { gravarBancoLocal, lerBancoLocal } from '@/infraestrutura/banco/arquivo-local';
 import { conexaoPostgres } from '@/infraestrutura/banco/conexao';
 
+const ordenadorNatural = new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' });
+function ordenarPorIdentificacao(acomodacoes: Acomodacao[]) {
+  return acomodacoes.sort((a, b) => ordenadorNatural.compare(a.identificacao, b.identificacao));
+}
+
 export async function listarAcomodacoes(): Promise<Acomodacao[]> {
   const sql = conexaoPostgres();
-  if (!sql) return (await lerBancoLocal()).acomodacoes;
+  if (!sql) return ordenarPorIdentificacao([...(await lerBancoLocal()).acomodacoes]);
 
   try {
     const linhas = await sql`
@@ -13,7 +18,7 @@ export async function listarAcomodacoes(): Promise<Acomodacao[]> {
       from acomodacoes
       order by identificacao
     `;
-    return linhas.map((linha) => ({
+    return ordenarPorIdentificacao(linhas.map((linha) => ({
       id: linha.id,
       identificacao: linha.identificacao,
       tipo: linha.tipo,
@@ -25,7 +30,7 @@ export async function listarAcomodacoes(): Promise<Acomodacao[]> {
       observacoes: linha.observacoes ?? '',
       criadoEm: linha.criado_em.toISOString(),
       atualizadoEm: linha.atualizado_em.toISOString(),
-    })) as Acomodacao[];
+    })) as Acomodacao[]);
   } finally {
     await sql.end();
   }
