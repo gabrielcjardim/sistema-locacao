@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 
-export function FormularioDeAtivacao({ instalacaoId }: { instalacaoId: string }) {
+export function FormularioDeAtivacao({ instalacaoId, corPrincipal }: { instalacaoId: string; corPrincipal: string }) {
   const [mensagem, definirMensagem] = useState('');
   const [enviando, definirEnviando] = useState(false);
 
@@ -20,6 +20,6 @@ export function FormularioDeAtivacao({ instalacaoId }: { instalacaoId: string })
     <label>Código desta instalação<input value={instalacaoId || 'Não configurado'} readOnly /></label>
     <label>Token de liberação<textarea name="token" required rows={6} placeholder="Cole aqui o token fornecido pelo licenciador" /></label>
     {mensagem && <div className="erro-login" role="alert">{mensagem}</div>}
-    <button className="botao-principal" disabled={enviando}>{enviando ? 'Validando...' : 'Ativar sistema'}</button>
+    <button className="botao-principal" style={{ backgroundColor: corPrincipal }} disabled={enviando}>{enviando ? 'Validando...' : 'Ativar sistema'}</button>
   </form>;
 }

@@ -10,10 +10,10 @@ export default async function PaginaDeEntrada() {
 
   return <main className="pagina-login" style={{ '--verde': configuracoes.corPrincipal } as CSSProperties}>
     <section className="cartao-login">
-      <div className="marca-login"><span>⌂</span><div><b>Meus Aptos</b><small>Gestão de locações</small></div></div>
+      <div className="marca-login"><span style={{ backgroundColor: configuracoes.corPrincipal }}>⌂</span><div><b>Meus Aptos</b><small>Gestão de locações</small></div></div>
       <h1>Bem-vindo</h1>
       <p>Entre com seu usuário para acessar o sistema.</p>
-      <FormularioDeEntrada />
+      <FormularioDeEntrada corPrincipal={configuracoes.corPrincipal} />
     </section>
   </main>;
 }

@@ -3,7 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export function FormularioDeEntrada() {
+export function FormularioDeEntrada({ corPrincipal }: { corPrincipal: string }) {
   const roteador = useRouter();
   const [mensagem, definirMensagem] = useState('');
   const [enviando, definirEnviando] = useState(false);
@@ -21,6 +21,6 @@ export function FormularioDeEntrada() {
     <label><span>Usuário</span><input name="usuario" autoComplete="username" required autoFocus /></label>
     <label><span>Senha</span><input name="senha" type="password" autoComplete="current-password" required /></label>
     {mensagem && <div className="erro-login" role="alert">{mensagem}</div>}
-    <button className="botao-principal" disabled={enviando}>{enviando ? 'Entrando...' : 'Entrar'}</button>
+    <button className="botao-principal" style={{ backgroundColor: corPrincipal }} disabled={enviando}>{enviando ? 'Entrando...' : 'Entrar'}</button>
   </form>;
 }

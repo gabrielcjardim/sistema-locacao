@@ -11,10 +11,10 @@ export default async function PaginaDeAtivacao() {
   const licenciamento = configuracaoDoLicenciamento();
   return <main className="pagina-login" style={{ '--verde': configuracoes.corPrincipal } as CSSProperties}>
     <section className="cartao-login cartao-ativacao">
-      <div className="marca-login"><span>⌂</span><div><b>Meus Aptos</b><small>Licenciamento da instalação</small></div></div>
+      <div className="marca-login"><span style={{ backgroundColor: configuracoes.corPrincipal }}>⌂</span><div><b>Meus Aptos</b><small>Licenciamento da instalação</small></div></div>
       <h1>Ativar sistema</h1>
       <p>Informe um token válido para liberar esta instalação.</p>
-      <FormularioDeAtivacao instalacaoId={licenciamento.instalacaoId} />
+      <FormularioDeAtivacao instalacaoId={licenciamento.instalacaoId} corPrincipal={configuracoes.corPrincipal} />
     </section>
   </main>;
 }
