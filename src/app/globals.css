@@ -214,16 +214,16 @@ nav button small {
     display: grid;
     place-items: center;
     padding: 24px;
-    background: linear-gradient(145deg, #fff8f3, #f7eee7)
+    background: linear-gradient(145deg, color-mix(in srgb, var(--verde) 4%, #fff), color-mix(in srgb, var(--verde) 10%, #fff))
 }
 
 .cartao-login {
     width: min(430px, 100%);
     background: #fff;
-    border: 1px solid #ead8cc;
+    border: 1px solid color-mix(in srgb, var(--verde) 24%, #fff);
     border-radius: 24px;
     padding: 34px;
-    box-shadow: 0 24px 70px #5b260f1f
+    box-shadow: 0 24px 70px color-mix(in srgb, var(--verde) 14%, transparent)
 }
 
 .marca-login {
@@ -239,7 +239,7 @@ nav button small {
     width: 48px;
     height: 48px;
     border-radius: 13px;
-    background: #ff5c00;
+    background: var(--verde);
     color: #fff;
     font-size: 1.45rem
 }
@@ -269,7 +269,25 @@ nav button small {
 }
 
 .cartao-login form label {
-    grid-column: auto
+    display: grid;
+    grid-column: auto;
+    gap: 7px;
+    font-weight: 700
+}
+
+.cartao-login form label input {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid color-mix(in srgb, var(--verde) 30%, #bbb);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font: inherit;
+    background: #fff
+}
+
+.cartao-login form label input:focus {
+    outline: 3px solid color-mix(in srgb, var(--verde) 18%, transparent);
+    border-color: var(--verde)
 }
 
 .cartao-login .botao-principal {
@@ -406,15 +424,23 @@ header p {
 }
 
 .numero {
-    width: 46px;
-    height: 46px;
+    width: fit-content;
+    max-width: 75%;
+    min-height: 46px;
     display: grid;
     place-items: center;
+    padding: 8px 12px;
     border-radius: 12px;
     background: var(--verde);
     color: #fff;
-    font-weight: 900
+    font-weight: 900;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+    text-align: center
 }
+
+.botao-perigo { border: 1px solid #c62828; background: #fff5f5; color: #a81616; border-radius: 10px; padding: 11px 14px; font-weight: 800; cursor: pointer; }
+.botao-perigo:hover { background: #ffe6e6; }
 
 .situacao {
     padding: 6px 9px;

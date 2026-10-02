@@ -9,6 +9,7 @@ export const esquemaDaAcomodacao = z.object({
   tipo: z.string().trim().min(1, 'Informe o tipo.').max(50),
   andarOuLocalizacao: z.string().trim().max(100).optional().default(''),
   capacidadeDePessoas: z.coerce.number().int().positive('A capacidade deve ser maior que zero.'),
+  numeroDeQuartos: z.coerce.number().int().positive('O número de quartos deve ser maior que zero.'),
   valorBaseDaDiaria: z.coerce.number().min(0, 'O valor não pode ser negativo.'),
   situacao: z.enum(situacoesDaAcomodacao).default('disponivel'),
   observacoes: z.string().trim().max(1000).optional().default(''),

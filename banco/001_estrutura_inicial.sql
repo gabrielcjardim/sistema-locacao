@@ -6,6 +6,7 @@ create table if not exists acomodacoes (
   tipo varchar(50) not null,
   andar_localizacao varchar(100),
   capacidade_pessoas integer not null check (capacidade_pessoas > 0),
+  numero_quartos integer not null default 1 check (numero_quartos > 0),
   valor_base_diaria numeric(12,2) not null default 0 check (valor_base_diaria >= 0),
   situacao varchar(30) not null default 'disponivel',
   observacoes text,
@@ -14,6 +15,7 @@ create table if not exists acomodacoes (
 );
 
 create index if not exists acomodacoes_por_situacao on acomodacoes (situacao);
+alter table acomodacoes add column if not exists numero_quartos integer not null default 1;
 
 create table if not exists hospedes (
   id uuid primary key default gen_random_uuid(), nome_completo varchar(180) not null,
