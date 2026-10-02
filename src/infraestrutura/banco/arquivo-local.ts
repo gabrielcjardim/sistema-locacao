@@ -19,6 +19,7 @@ export async function lerBancoLocal(): Promise<BancoLocal> {
     banco.vistorias ??= [];
     banco.lancamentosFinanceiros ??= [];
     banco.usuariosDoSistema ??= [];
+    banco.usuariosDoSistema = banco.usuariosDoSistema.map((usuario) => ({ ...usuario, perfil: usuario.perfil ?? (usuario.usuario.toLowerCase() === process.env.USUARIO_ADMIN?.trim().toLowerCase() ? 'administrador_principal' : 'operador') }));
     banco.acomodacoes = banco.acomodacoes.map((acomodacao) => ({ ...acomodacao, numeroDeQuartos: acomodacao.numeroDeQuartos ?? 1 }));
     banco.reservas = banco.reservas.map((reserva) => ({ ...reserva, horaDeEntrada: reserva.horaDeEntrada ?? '14:00', horaDeSaida: reserva.horaDeSaida ?? '11:00', valorCalculado: reserva.valorCalculado ?? reserva.valorTotal, ajusteNoValor: reserva.ajusteNoValor ?? 0, motivoDoAjuste: reserva.motivoDoAjuste ?? '' }));
     return banco;

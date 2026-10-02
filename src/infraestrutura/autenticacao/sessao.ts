@@ -5,6 +5,7 @@ export const duracaoDaSessaoEmSegundos = 60 * 60 * 12;
 
 interface ConteudoDaSessao {
   usuario: string;
+  perfil: 'administrador_principal' | 'administrador' | 'operador';
   expiraEm: number;
 }
 
@@ -41,9 +42,10 @@ export function senhaConfereComHash(senha: string, senhaHash: string) {
   return compararComTempoConstante(hashInformado, hashEsperado);
 }
 
-export function criarTokenDaSessao(usuario: string) {
+export function criarTokenDaSessao(usuario: string, perfil: 'administrador_principal' | 'administrador' | 'operador') {
   const conteudo: ConteudoDaSessao = {
     usuario: usuario.trim().toLowerCase(),
+    perfil,
     expiraEm: Date.now() + duracaoDaSessaoEmSegundos * 1000,
   };
   const dados = Buffer.from(JSON.stringify(conteudo)).toString('base64url');
@@ -69,4 +71,14 @@ export function obterUsuarioDaSessao(token: string | undefined) {
   if (!tokenDaSessaoEValido(token)) return null;
   try { return (JSON.parse(Buffer.from(token!.split('.')[0], 'base64url').toString('utf8')) as ConteudoDaSessao).usuario; }
   catch { return null; }
+}
+
+export function obterSessao(token: string | undefined): { usuario: string; perfil: 'administrador_principal' | 'administrador' | 'operador' } | null {
+  if (!tokenDaSessaoEValido(token)) return null;
+  try {
+    const conteudo = JSON.parse(Buffer.from(token!.split('.')[0], 'base64url').toString('utf8')) as Partial<ConteudoDaSessao>;
+    const administradorDeContingencia = conteudo.usuario?.toLowerCase() === process.env.USUARIO_ADMIN?.trim().toLowerCase();
+    const perfil = administradorDeContingencia ? 'administrador_principal' : conteudo.perfil === 'administrador_principal' || conteudo.perfil === 'administrador' ? conteudo.perfil : 'operador';
+    return { usuario: conteudo.usuario!, perfil };
+  } catch { return null; }
 }

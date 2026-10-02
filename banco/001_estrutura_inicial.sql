@@ -97,8 +97,10 @@ create table if not exists usuarios_sistema (
   usuario varchar(80) not null,
   usuario_normalizado varchar(80) not null unique,
   senha_hash varchar(200) not null,
+  perfil varchar(30) not null default 'operador',
   ativo boolean not null default true,
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now()
 );
 create index if not exists usuarios_por_situacao on usuarios_sistema (ativo, nome);
+alter table usuarios_sistema add column if not exists perfil varchar(30) not null default 'operador';

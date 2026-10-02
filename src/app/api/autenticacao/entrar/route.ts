@@ -26,7 +26,8 @@ export async function POST(requisicao: Request) {
 
     const resposta = NextResponse.json({ autenticado: true });
     if (autenticacaoObrigatoria()) {
-      resposta.cookies.set(nomeDoCookieDaSessao, criarTokenDaSessao(dados.usuario), {
+      const usuario = await obterUsuarioParaAutenticacao(dados.usuario);
+      resposta.cookies.set(nomeDoCookieDaSessao, criarTokenDaSessao(dados.usuario, usuario?.perfil ?? 'operador'), {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
