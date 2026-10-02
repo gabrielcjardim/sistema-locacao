@@ -2,8 +2,10 @@ node_modules
 .next
 .env
 .env.local
+.env.vercel.licenciamento
 .env*.local
 .licenciamento/
 dados-locais
 *.log
 *.tsbuildinfo
+
