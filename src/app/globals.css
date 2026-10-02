@@ -1169,6 +1169,30 @@ header p {
     overflow: hidden
 }
 
+.rolagem-agenda {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--verde) var(--tema-clarissimo)
+}
+
+.rolagem-agenda::-webkit-scrollbar {
+    height: 10px
+}
+
+.rolagem-agenda::-webkit-scrollbar-track {
+    background: var(--tema-clarissimo)
+}
+
+.rolagem-agenda::-webkit-scrollbar-thumb {
+    background: var(--verde);
+    border: 2px solid var(--tema-clarissimo);
+    border-radius: 999px
+}
+
 .agenda>header {
     display: flex;
     justify-content: space-between;
@@ -1583,23 +1607,17 @@ header p {
         flex: 1
     }
 
-    .calendario,
-    .grade-semana,
-    .visao-dia {
-        overflow: auto
-    }
-
-    .dias-da-semana,
-    .mes-calendario {
+    .calendario {
         min-width: 760px
     }
 
     .grade-semana {
-        min-width: 910px
+        min-width: 980px;
+        overflow: visible
     }
 
-    .linha-do-tempo {
-        min-width: 680px
+    .visao-dia {
+        min-width: 960px
     }
 
     .celula-dia {
@@ -1670,3 +1688,4 @@ header p {
         grid-column: 1/-1
     }
 }
+
