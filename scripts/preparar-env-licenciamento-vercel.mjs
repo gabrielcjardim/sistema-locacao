@@ -15,7 +15,7 @@ let conteudoDoAmbiente = await readFile(caminhoDoAmbiente, 'utf8');
 const caminhoDaChavePrivada = path.join(raiz, '..', 'central-de-licencas', '.segredos', 'chave-privada.pem');
 try {
   const chavePrivada = await readFile(caminhoDaChavePrivada);
-  const chavePublica = createPublicKey(chavePrivada).export({ type: 'spki', format: 'der' }).toString('base64');
+  const chavePublica = createPublicKey(chavePrivada).export({ type: 'spki', format: 'der' }).toString('base64url');
   const linha = `LICENCA_CHAVE_PUBLICA=${chavePublica}`;
   conteudoDoAmbiente = /^LICENCA_CHAVE_PUBLICA=.*$/m.test(conteudoDoAmbiente)
     ? conteudoDoAmbiente.replace(/^LICENCA_CHAVE_PUBLICA=.*$/m, linha)
