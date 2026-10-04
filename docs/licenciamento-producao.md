@@ -24,6 +24,8 @@ O ambiente de produção utiliza `LICENCIAMENTO_ATIVO`, `LICENCA_SISTEMA_ID`, `L
 
 Os valores reais ficam no cofre da Vercel. Tokens completos, segredos e chaves privadas não devem ser incluídos no GitHub nem na documentação.
 
+O comando `node scripts/preparar-env-licenciamento-vercel.mjs` sincroniza automaticamente a chave pública com a chave privada da Central quando os dois repositórios estão lado a lado. Somente a chave pública é copiada; a chave privada nunca sai da Central.
+
 ## Auditoria
 
 A Central registra emissão, mudança de situação e entrega ou falha de sinais. O sistema de locação mantém o estado recebido e o horário da última atualização para aplicar a licença mesmo entre verificações.
