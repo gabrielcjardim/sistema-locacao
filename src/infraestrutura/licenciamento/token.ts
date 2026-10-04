@@ -4,7 +4,7 @@ export interface ConteudoDaLicenca {
   versao: 1;
   licencaId: string;
   sistemaId: string;
-  clienteId: string;
+  clienteId: number;
   instalacaoId: string;
   clienteNome: string;
   emitidaEm: string;
@@ -41,3 +41,4 @@ export async function validarTokenDaLicenca(token: string): Promise<{ conteudo: 
   const situacao: SituacaoDaLicenca = agora <= validaAte ? 'ativa' : agora <= toleranciaAte ? 'tolerancia' : 'expirada';
   return { conteudo, situacao };
 }
+
