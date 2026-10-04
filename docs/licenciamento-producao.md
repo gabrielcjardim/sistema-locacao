@@ -28,5 +28,5 @@ O comando `node scripts/preparar-env-licenciamento-vercel.mjs` sincroniza automa
 
 ## Auditoria
 
-A Central registra emissão, mudança de situação e entrega ou falha de sinais. O sistema de locação mantém o estado recebido e o horário da última atualização para aplicar a licença mesmo entre verificações.
+A Central registra emissão, mudança de situação, validação e entrega ou falha de sinais. O sistema de locação mantém no PostgreSQL o estado recebido e o horário da última atualização para aplicar a licença mesmo entre verificações. Em desenvolvimento sem `DATABASE_URL`, esse estado permanece em arquivo local.
 
