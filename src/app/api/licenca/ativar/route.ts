@@ -18,7 +18,7 @@ export async function POST(requisicao: NextRequest) {
     const urlDeNotificacao = `${new URL(requisicao.url).origin}/api/licenca/sinal`;
     const validacaoInicial = await validarAtivacaoNaCentral(tokenLimpo, urlDeNotificacao);
     if (!validacaoInicial.segredoDeNotificacao) throw new Error('CENTRAL_NAO_FORNECEU_SEGREDO');
-    await salvarEstadoRecebido({ licencaId: licenca.conteudo.licencaId, instalacaoId: licenca.conteudo.instalacaoId, situacao: 'ativa', intervaloVerificacaoSegundos: validacaoInicial.intervaloVerificacaoSegundos ?? 200, segredoDeNotificacao: validacaoInicial.segredoDeNotificacao, atualizadoEm: new Date().toISOString() });
+    await salvarEstadoRecebido({ licencaId: licenca.conteudo.licencaId, instalacaoId: licenca.conteudo.instalacaoId, situacao: 'ativa', intervaloVerificacaoSegundos: validacaoInicial.intervaloVerificacaoSegundos ?? 200, segredoDeNotificacao: validacaoInicial.segredoDeNotificacao, tokenDaLicenca: tokenLimpo, atualizadoEm: new Date().toISOString() });
     const resposta = NextResponse.json({ licenca: licenca.conteudo, situacao: licenca.situacao });
     resposta.cookies.set(nomeDoCookieDaLicenca, tokenLimpo, { httpOnly: true, sameSite: 'strict', secure: process.env.NODE_ENV === 'production', path: '/', expires: new Date(licenca.conteudo.toleranciaAte) });
     return resposta;
@@ -28,3 +28,4 @@ export async function POST(requisicao: NextRequest) {
     return NextResponse.json({ mensagem }, { status: codigo === 'CENTRAL_INDISPONIVEL' ? 503 : 400 });
   }
 }
+
