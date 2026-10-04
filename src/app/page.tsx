@@ -31,7 +31,7 @@ type InformacoesDaLicenca = {
   situacao: 'ativa' | 'tolerancia' | 'expirada' | 'ausente' | 'invalida' | 'desativada' | 'suspensa' | 'revogada' | 'cadastro_inativo' | 'central_indisponivel';
   instalacaoId: string;
   intervaloDeVerificacaoSegundos?: number;
-  licenca?: { licencaId: string; sistemaId: string; clienteId: string; clienteNome: string; emitidaEm: string; validaAte: string; toleranciaAte: string };
+  licenca?: { licencaId: string; sistemaId: string; clienteId: number; clienteNome: string; emitidaEm: string; validaAte: string; toleranciaAte: string };
 };
 
 async function buscarLista<T>(rota: string): Promise<T[]> {
@@ -606,3 +606,4 @@ function FichaDoHospede({ hospede, reservas, acomodacoes, editarReserva }: { hos
   const historico = reservas.filter((item) => item.hospedeResponsavelId === hospede.id).sort((a, b) => b.dataDeEntrada.localeCompare(a.dataDeEntrada));
   return <div className="ficha-hospede"><div className="dados-hospede"><div><small>Nome</small><b>{hospede.nomeCompleto}</b></div><div><small>Telefone</small><b>{hospede.telefone}</b></div><div><small>CPF</small><b>{hospede.cpf || 'Não informado'}</b></div><div><small>E-mail</small><b>{hospede.email || 'Não informado'}</b></div></div><h3>Histórico de reservas ({historico.length})</h3><div className="historico-hospede">{historico.map((reserva) => <button key={reserva.id} onClick={() => editarReserva(reserva)}><span><b>{acomodacoes.find((item) => item.id === reserva.acomodacaoId)?.identificacao ?? 'Acomodação'}</b><small>{formatarData(reserva.dataDeEntrada)} a {formatarData(reserva.dataDeSaida)}</small></span><strong>{reserva.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong></button>)}</div></div>;
 }
+
