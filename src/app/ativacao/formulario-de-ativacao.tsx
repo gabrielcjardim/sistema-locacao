@@ -1,10 +1,27 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 
 export function FormularioDeAtivacao({ instalacaoId, corPrincipal }: { instalacaoId: string; corPrincipal: string }) {
   const [mensagem, definirMensagem] = useState('');
   const [enviando, definirEnviando] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+    async function verificarReativacao() {
+      try {
+        const resposta = await fetch('/api/licenca/status', { cache: 'no-store' });
+        const estado = await resposta.json();
+        if (ativo && (estado.situacao === 'ativa' || estado.situacao === 'tolerancia')) {
+          const destino = new URLSearchParams(window.location.search).get('destino') ?? '/';
+          window.location.assign(destino);
+        }
+      } catch { /* A tela permanece disponível para ativação manual. */ }
+    }
+    verificarReativacao();
+    const temporizador = window.setInterval(verificarReativacao, 5000);
+    return () => { ativo = false; window.clearInterval(temporizador); };
+  }, []);
 
   async function ativar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault(); definirEnviando(true); definirMensagem('');
@@ -23,3 +40,4 @@ export function FormularioDeAtivacao({ instalacaoId, corPrincipal }: { instalaca
     <button className="botao-principal" style={{ backgroundColor: corPrincipal }} disabled={enviando}>{enviando ? 'Validando...' : 'Ativar sistema'}</button>
   </form>;
 }
+
