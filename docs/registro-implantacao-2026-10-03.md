@@ -35,3 +35,14 @@
 
 Preparar operação híbrida do sistema web com PostgreSQL instalado na rede local. O código já aceita `DATABASE_URL` para selecionar PostgreSQL e mantém alternativa por arquivo apenas no desenvolvimento. A etapa futura deverá incluir conexão segura entre a aplicação web e a rede local, backup automatizado, monitoramento e procedimento de contingência.
 
+## Validação complementar — 04/10/2026
+
+- A renovação passou a contar os dias exclusivamente a partir da nova emissão, sem acumular o saldo da licença anterior.
+- A licença incorreta foi substituída pela vigência de 04/10/2026 a 03/11/2026, com tolerância até 10/11/2026.
+- Emissão e reativação enviam o token no sinal HMAC; o destino também valida a assinatura Ed25519 antes de persistir e liberar o acesso.
+- O estado remoto suspenso ou revogado prevalece sobre cookies e tokens anteriores da instalação.
+- A interface da Central apresenta processamento, sucesso e falha de entrega do sinal.
+- Teste em produção concluído: suspensão bloqueou um novo acesso e reativação liberou automaticamente a tela de ativação, mantendo 30 dias de vigência.
+- A revogação não foi executada sobre a licença vigente por ser irreversível; sua transição foi validada por regra e build.
+- Evolução futura registrada: isolamento multicliente usando o `clienteId` já assinado no token, sem expor o código na URL.
+
