@@ -16,10 +16,10 @@ export async function proxy(requisicao: NextRequest) {
 
   if (licenciamentoObrigatorio() && !caminhoPublico) {
     try {
-      const token = requisicao.cookies.get(nomeDoCookieDaLicenca)?.value;
+      const estadoRecebido = await lerEstadoRecebido();
+      const token = estadoRecebido?.situacao === 'ativa' && estadoRecebido.tokenDaLicenca ? estadoRecebido.tokenDaLicenca : requisicao.cookies.get(nomeDoCookieDaLicenca)?.value;
       const licenca = token ? await validarTokenDaLicenca(token) : null;
       if (!licenca || licenca.situacao === 'expirada') throw new Error('LICENCA_INATIVA');
-      const estadoRecebido = await lerEstadoRecebido();
       if (estadoRecebido?.licencaId === licenca.conteudo.licencaId && estadoRecebido.situacao !== 'ativa') throw new Error(`LICENCA_${estadoRecebido.situacao.toUpperCase()}`);
     } catch {
       if (caminho.startsWith('/api/')) return NextResponse.json({ mensagem: 'Licença ausente, inválida ou expirada.' }, { status: 402 });
@@ -51,3 +51,4 @@ export async function proxy(requisicao: NextRequest) {
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest).*)'],
 };
+
