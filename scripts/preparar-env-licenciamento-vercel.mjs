@@ -1,4 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { createPublicKey } from 'node:crypto';
 import path from 'node:path';
 
 function lerAmbiente(conteudo) {
@@ -9,7 +10,21 @@ function lerAmbiente(conteudo) {
 }
 
 const raiz = process.cwd();
-const atual = lerAmbiente(await readFile(path.join(raiz, '.env.development.local'), 'utf8'));
+const caminhoDoAmbiente = path.join(raiz, '.env.development.local');
+let conteudoDoAmbiente = await readFile(caminhoDoAmbiente, 'utf8');
+const caminhoDaChavePrivada = path.join(raiz, '..', 'central-de-licencas', '.segredos', 'chave-privada.pem');
+try {
+  const chavePrivada = await readFile(caminhoDaChavePrivada);
+  const chavePublica = createPublicKey(chavePrivada).export({ type: 'spki', format: 'der' }).toString('base64');
+  const linha = `LICENCA_CHAVE_PUBLICA=${chavePublica}`;
+  conteudoDoAmbiente = /^LICENCA_CHAVE_PUBLICA=.*$/m.test(conteudoDoAmbiente)
+    ? conteudoDoAmbiente.replace(/^LICENCA_CHAVE_PUBLICA=.*$/m, linha)
+    : `${conteudoDoAmbiente.trimEnd()}\n${linha}\n`;
+  await writeFile(caminhoDoAmbiente, conteudoDoAmbiente, { mode: 0o600 });
+} catch (erro) {
+  if (erro?.code !== 'ENOENT') throw erro;
+}
+const atual = lerAmbiente(conteudoDoAmbiente);
 const obrigatorias = ['LICENCA_SISTEMA_ID', 'LICENCA_INSTALACAO_ID', 'LICENCA_CHAVE_PUBLICA'];
 for (const nome of obrigatorias) if (!atual[nome]) throw new Error(`${nome} não configurada no desenvolvimento.`);
 
