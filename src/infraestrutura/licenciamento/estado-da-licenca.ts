@@ -4,7 +4,7 @@ import path from 'node:path';
 import { conexaoPostgres } from '@/infraestrutura/banco/conexao';
 
 export type SituacaoRecebida = 'ativa' | 'suspensa' | 'revogada';
-export interface EstadoRecebidoDaLicenca { licencaId: string; instalacaoId: string; situacao: SituacaoRecebida; intervaloVerificacaoSegundos?: number; segredoDeNotificacao?: string; atualizadoEm: string }
+export interface EstadoRecebidoDaLicenca { licencaId: string; instalacaoId: string; situacao: SituacaoRecebida; intervaloVerificacaoSegundos?: number; segredoDeNotificacao?: string; tokenDaLicenca?: string; atualizadoEm: string }
 
 const pasta = path.join(process.cwd(), '.licenciamento');
 const arquivo = path.join(pasta, 'estado-da-licenca.json');
