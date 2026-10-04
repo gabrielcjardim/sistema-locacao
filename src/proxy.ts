@@ -17,10 +17,10 @@ export async function proxy(requisicao: NextRequest) {
   if (licenciamentoObrigatorio() && !caminhoPublico) {
     try {
       const estadoRecebido = await lerEstadoRecebido();
+      if (estadoRecebido && estadoRecebido.situacao !== 'ativa') throw new Error(`LICENCA_${estadoRecebido.situacao.toUpperCase()}`);
       const token = estadoRecebido?.situacao === 'ativa' && estadoRecebido.tokenDaLicenca ? estadoRecebido.tokenDaLicenca : requisicao.cookies.get(nomeDoCookieDaLicenca)?.value;
       const licenca = token ? await validarTokenDaLicenca(token) : null;
       if (!licenca || licenca.situacao === 'expirada') throw new Error('LICENCA_INATIVA');
-      if (estadoRecebido?.licencaId === licenca.conteudo.licencaId && estadoRecebido.situacao !== 'ativa') throw new Error(`LICENCA_${estadoRecebido.situacao.toUpperCase()}`);
     } catch {
       if (caminho.startsWith('/api/')) return NextResponse.json({ mensagem: 'Licença ausente, inválida ou expirada.' }, { status: 402 });
       const ativacao = new URL('/ativacao', requisicao.url);
